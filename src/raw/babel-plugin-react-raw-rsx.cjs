@@ -274,11 +274,14 @@ module.exports = function ({ types: t }) {
         if (path.node.source.value !== "react") return;
 
         for (const spec of path.node.specifiers) {
-          if (
-            t.isImportSpecifier(spec) &&
-            spec.imported.name === "useState"
-          ) {
-            bannedHooks.add(spec.local.name);
+          if (!t.isImportSpecifier(spec)) continue;
+
+          const imported = spec.imported.name;
+          const local = spec.local.name;
+
+          // Ban these hooks in RSX
+          if (imported === "useState" || imported === "useCallback") {
+            bannedHooks.add(local);
           }
         }
       },
@@ -293,10 +296,22 @@ module.exports = function ({ types: t }) {
         if (isInternal(callee.node.name)) return;
 
         if (bannedHooks.has(callee.node.name)) {
-          throw path.buildCodeFrameError(
-            "[RSX] useState() is not allowed in .rsx files.\n" +
-            "Use RSX local variables for instance state, or external hooks for shared state."
-          );
+          const name = callee.node.name;
+
+          if (name === "useCallback") {
+            throw path.buildCodeFrameError(
+              "[RSX] useCallback() is not allowed in .rsx files.\n" +
+              "RSX guarantees stable function identity by default.\n" +
+              "Define functions normally and call render() when updates are needed."
+            );
+          }
+
+          if (name === "useState") {
+            throw path.buildCodeFrameError(
+              "[RSX] useState() is not allowed in .rsx files.\n" +
+              "Use RSX local variables for instance state, or external hooks for shared state."
+            );
+          }
         }
       },
     },
