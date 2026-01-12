@@ -212,17 +212,107 @@ module.exports = function ({ types: t }) {
 
       // Capture the function component
       FunctionDeclaration(path, state) {
-        if (!state.rsx || state.skipRSX) return;
+      // ------------------------------------------------------------
+      // Only operate on the RSX root component.
+      // We assume Program.enter already identified and stored it
+      // in state.__rsxComponent.
+      // ------------------------------------------------------------
+      if (path.node !== state.__rsxComponent) return;
 
-        const parent = path.parentPath;
-        if (
-          parent.isProgram() ||
-          parent.isExportDefaultDeclaration()
-        ) {
-          state.rsx.componentPath = path;
-          recordPropBindings(path, state, t);
+      // We only handle functions with block bodies:
+      //   function Foo() { ... }
+      // (arrow functions without blocks will be handled later)
+      if (!t.isBlockStatement(path.node.body)) return;
+
+      // ------------------------------------------------------------
+      // Capture the original function body statements.
+      // This is the user-written code inside the component.
+      // ------------------------------------------------------------
+      const originalBody = path.node.body.body;
+
+      // ------------------------------------------------------------
+      // We must separate return statements from all other statements.
+      //
+      // Why?
+      // - In Phase 1, we want the *logic* to run once
+      // - But we still want the function to be callable
+      //   without breaking existing JSX return behavior
+      //
+      // Eventually the root will return nothing,
+      // but we intentionally do NOT enforce that yet.
+      // ------------------------------------------------------------
+      const nonReturnStatements = [];
+      const returnStatements = [];
+
+      for (const stmt of originalBody) {
+        if (t.isReturnStatement(stmt)) {
+          returnStatements.push(stmt);
+        } else {
+          nonReturnStatements.push(stmt);
         }
-      },
+      }
+
+      // ------------------------------------------------------------
+      // Create an internal initialization flag:
+      //
+      //   let __rsx_initialized = false;
+      //
+      // This flag lives inside the component instance and is used
+      // to ensure the root code only executes once (init semantics).
+      // ------------------------------------------------------------
+      const initFlagDecl = t.variableDeclaration("let", [
+        t.variableDeclarator(
+          t.identifier("__rsx_initialized"),
+          t.booleanLiteral(false)
+        )
+      ]);
+
+      // ------------------------------------------------------------
+      // Create the guarded init block:
+      //
+      //   if (!__rsx_initialized) {
+      //     __rsx_initialized = true;
+      //     // original user code
+      //   }
+      //
+      // This turns the RSX root into a constructor-like phase.
+      // All variables become persistent refs after this.
+      // ------------------------------------------------------------
+      const initGuard = t.ifStatement(
+        t.unaryExpression("!", t.identifier("__rsx_initialized")),
+        t.blockStatement([
+          // __rsx_initialized = true;
+          t.expressionStatement(
+            t.assignmentExpression(
+              "=",
+              t.identifier("__rsx_initialized"),
+              t.booleanLiteral(true)
+            )
+          ),
+
+          // All original non-return user code goes here
+          ...nonReturnStatements
+        ])
+      );
+
+      // ------------------------------------------------------------
+      // Replace the function body with:
+      //
+      //   let __rsx_initialized = false;
+      //   if (!__rsx_initialized) { ...init... }
+      //   return ...
+      //
+      // IMPORTANT:
+      // - We intentionally leave return statements untouched
+      // - We are *not* adding lifecycle hooks yet
+      // - We are *not* changing JSX semantics yet
+      // ------------------------------------------------------------
+      path.node.body.body = [
+        initFlagDecl,
+        initGuard,
+        ...returnStatements
+      ];
+    },
       ExportDefaultDeclaration(path, state) {
         if (!state.rsx || state.skipRSX) return;
 
@@ -282,7 +372,7 @@ module.exports = function ({ types: t }) {
         }
       },
 
-      AssignmentExpression(path, state) {
+      AssignmentExpression(path , state) {
         if (!state.rsx || state.skipRSX) return;
 
         const { left, right } = path.node;
