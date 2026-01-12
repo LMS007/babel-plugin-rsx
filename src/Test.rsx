@@ -10,5 +10,9 @@ export default function Test(props) {
 
   console.log("counter =", counter, "props =", props);
 
+  update(() => console.log("update registered"));
+  view(() => console.log("view registered"));
+  destroy(() => console.log("destroy registered"));
+
   return null;
 }

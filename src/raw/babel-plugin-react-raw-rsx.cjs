@@ -315,15 +315,66 @@ module.exports = function ({ types: t }) {
         ];
 
         // ------------------------------------------------------------
-        // Phase 2: init-once guard stored on __instance.
+        // Phase 3: lifecycle registration APIs
         //
-        // IMPORTANT: this fixes Phase 1's "local let __rsx_initialized"
-        // problem by persisting init state on the per-instance object.
-        //
-        // if (!__instance.__rsx_initialized) {
-        //   __instance.__rsx_initialized = true;
-        //   ...user init code...
-        // }
+        // These functions are stable (created once),
+        // close over __instance, and only STORE callbacks.
+        // They do NOT execute anything yet.
+        // ------------------------------------------------------------
+
+        const updateFnDecl = t.functionDeclaration(
+          t.identifier("update"),
+          [t.identifier("fn")],
+          t.blockStatement([
+            t.expressionStatement(
+              t.assignmentExpression(
+                "=",
+                t.memberExpression(
+                  t.identifier("__instance"),
+                  t.identifier("__rsx_updateCb")
+                ),
+                t.identifier("fn")
+              )
+            )
+          ])
+        );
+
+        const viewFnDecl = t.functionDeclaration(
+          t.identifier("view"),
+          [t.identifier("fn")],
+          t.blockStatement([
+            t.expressionStatement(
+              t.assignmentExpression(
+                "=",
+                t.memberExpression(
+                  t.identifier("__instance"),
+                  t.identifier("__rsx_viewCb")
+                ),
+                t.identifier("fn")
+              )
+            )
+          ])
+        );
+
+        const destroyFnDecl = t.functionDeclaration(
+          t.identifier("destroy"),
+          [t.identifier("fn")],
+          t.blockStatement([
+            t.expressionStatement(
+              t.assignmentExpression(
+                "=",
+                t.memberExpression(
+                  t.identifier("__instance"),
+                  t.identifier("__rsx_destroyCb")
+                ),
+                t.identifier("fn")
+              )
+            )
+          ])
+        );
+
+        // ------------------------------------------------------------
+        // Phase 2: init-once guard (true constructor semantics)
         // ------------------------------------------------------------
         const initGuard = t.ifStatement(
           t.unaryExpression(
@@ -340,23 +391,32 @@ module.exports = function ({ types: t }) {
               )
             ),
 
-            // user code that should run only once per instance
+            // --------------------------------------------------------
+            // User code executes exactly once here
+            // --------------------------------------------------------
             ...nonReturnStatements
           ])
         );
 
         // ------------------------------------------------------------
-        // Replace the body:
-        //
-        // 1) Always track props each call (for later update wiring)
-        // 2) Run root code only once per instance
-        // 3) Keep return statements for now (we'll remove/normalize later)
+        // Replace the function body
         // ------------------------------------------------------------
         path.node.body.body = [
+          // runs every call
           ...trackPropsStatements,
+
+          // lifecycle API (stable)
+          updateFnDecl,
+          viewFnDecl,
+          destroyFnDecl,
+
+          // init-once execution
           initGuard,
+
+          // legacy return (will be removed later)
           ...returnStatements
         ];
+
       },
       ExportDefaultDeclaration(path, state) {
         if (!state.rsx || state.skipRSX) return;
