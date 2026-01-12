@@ -9,7 +9,7 @@ export default function HighResTimer({
   startMs = 0,
   logicStepMs = 10,
   initialFrameMs = 10,
-  label = "High-Resolution Timer",
+  label = "React High-Resolution Timer",
 }) {
   // ─────────────────────────────────────────────
   // Persistent mutable values (refs)

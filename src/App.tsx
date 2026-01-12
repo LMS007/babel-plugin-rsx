@@ -4,9 +4,9 @@ import viteLogo from '/vite.svg'
 import './App.css'
 import {usePaginatedFetch } from  './Hooks'
 //import type {HomePageContentItem} from  './Hooks'
-import Test from "./Test.rsx";
-import HighResTimer from './Timer1'
-import HighResTimerRT from './Timer2'
+import TestOnce from "./Test.rsx";
+//import HighResTimer from './Timer1'
+//import HighResTimerRT from './Timer2'
 
 
 function App() {
@@ -61,6 +61,7 @@ function App() {
     }
   }
   useEffect(()=>{
+    console.log("App mounted")
     if(!init.current) {
       
       fetchData(nextCursor, 25)
@@ -82,13 +83,14 @@ function App() {
     }
   }
 
-  console.log({hasNext})
+  
   return (
     <>
       <div>
         {/* <Test label="Counter" /> */}
-        <HighResTimer></HighResTimer>
-        <HighResTimerRT></HighResTimerRT>
+        {/* <HighResTimer></HighResTimer>
+        <HighResTimerRT></HighResTimerRT> */}
+        <TestOnce></TestOnce>
         <a href="https://vite.dev" target="_blank">
           <img src={viteLogo} className="logo" alt="Vite logo" />
         </a>
@@ -96,7 +98,7 @@ function App() {
           <img src={reactLogo} className="logo react" alt="React logo" />
         </a>
       </div>
-      <h1>Vite + React</h1>
+      {/* <h1>Vite + React</h1>
       <div className="card">
 
         <ul>
@@ -117,7 +119,7 @@ function App() {
       </div>
       <p className="read-the-docs">
         Click on the Vite and React logos to learn more
-      </p>
+      </p> */}
     </>
   )
 }

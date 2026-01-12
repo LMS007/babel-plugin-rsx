@@ -1,18 +1,15 @@
 import { render } from "react-raw";
 
 
-export default function Test({ label }) {
-  let count = 0;
+export default function TestOnce(props) {
+  console.log("RSX INIT: this should print only once");
 
-  function increment() {
-    count++; 
-    render();
-  }
+  let counter = 0;
+  counter++;
 
-  return (
-    <div style={{ padding: 16, border: "1px solid #ccc" }}>
-      <div>{label}: {count}</div>
-      <button onClick={increment}>+1</button>
-    </div>
-  );
+  console.log("counter value:", counter);
+
+  // We still return something for now, even though Phase 1
+  // does not yet remove the return semantics.
+  return null;
 }

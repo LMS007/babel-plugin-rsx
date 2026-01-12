@@ -1,16 +1,24 @@
 import { render } from "react-raw";
 
 export default function HighResTimerRT({
-  startMs = 0,
+  startMs = 50,
   logicStepMs = 10,
   initialFrameMs = 10,
-  label = "High-Resolution Timer",
+  label = "RSX - High-Resolution Timer",
 }) {
   // ─────────────────────────────────────────────
   // Persistent instance variables
   // ─────────────────────────────────────────────
 
+  let init = true;
+  init = false
+  
   let elapsedMs = startMs;
+  if(!init) {
+    elapsedMs = elapsedMs + 1;
+    init = true;
+  }
+
   let running = false;
 
   let logicIntervalId = null;
@@ -109,7 +117,7 @@ export default function HighResTimerRT({
 
   return (
     <div style={{ fontFamily: "monospace", width: 280 }}>
-      <h3>{label}</h3>
+      <h3>{label} ?? [{elapsedMs}] ?? </h3>
 
       <div
         style={{
