@@ -37,6 +37,46 @@ function isInstanceField(name, state) {
   );
 }
 
+function referencesProps(node, t) {
+  let found = false;
+
+  function walk(n) {
+    if (!n || found) return;
+
+    if (t.isIdentifier(n, { name: "props" })) {
+      found = true;
+      return;
+    }
+
+    for (const key in n) {
+      const val = n[key];
+      if (Array.isArray(val)) val.forEach(walk);
+      else if (val && typeof val === "object") walk(val);
+    }
+  }
+
+  walk(node);
+  return found;
+}
+
+function recordPropBindings(fnPath, state, t) {
+  const params = fnPath.node.params;
+  if (!params) return;
+
+  for (const param of params) {
+    if (!t.isObjectPattern(param)) continue;
+
+    for (const prop of param.properties) {
+      if (
+        t.isObjectProperty(prop) &&
+        t.isIdentifier(prop.value)
+      ) {
+        state.rsx.propBindings.add(prop.value.name);
+      }
+    }
+  }
+}
+
 
 module.exports = function ({ types: t }) {
   let bannedHooks;
@@ -44,6 +84,7 @@ module.exports = function ({ types: t }) {
     visitor: {
       Program: {
         enter(path, state) {
+          
           bannedHooks = new Set();
           const filename = state.filename || "";
 
@@ -59,6 +100,7 @@ module.exports = function ({ types: t }) {
           state.rsx = {
             instanceVars: new Map(),
             componentPath: null,
+            propBindings: new Set(), // 👈 REQUIRED
           };
           ensureNamedImport(path, "react", ["useRef", "useState"], t);
           ensureNamedImport(path, "react-raw", ["bindRender"], t);
@@ -178,6 +220,7 @@ module.exports = function ({ types: t }) {
           parent.isExportDefaultDeclaration()
         ) {
           state.rsx.componentPath = path;
+          recordPropBindings(path, state, t);
         }
       },
       ExportDefaultDeclaration(path, state) {
@@ -191,22 +234,45 @@ module.exports = function ({ types: t }) {
           decl.isArrowFunctionExpression()
         ) {
           state.rsx.componentPath = decl;
+          recordPropBindings(decl, state, t);
         }
       },
 
       // Capture variables to persist
       VariableDeclarator(path, state) {
         if (!state.rsx || state.skipRSX) return;
+
         const fn = path.getFunctionParent();
         if (!fn || fn.node !== state.rsx.componentPath.node) return;
 
-        const id = path.node.id;
+        const { id, init } = path.node;
         if (!t.isIdentifier(id)) return;
 
         // Skip compiler internals
         if (isInternal(id.name)) return;
 
-        state.rsx.instanceVars.set(id.name, path.node.init);
+        // ⚠️ WARNING: instance init derived from props
+        if (
+          init &&
+          (
+            referencesProps(init, t) ||
+            (
+              t.isIdentifier(init) &&
+              state.rsx.propBindings?.has(init.name)
+            )
+          )
+        ) {
+          console.warn(
+            path.buildCodeFrameError(
+              `[RSX] Warning: initializing instance state "${id.name}" from props.\n` +
+              "Instance initializers run before root code and may capture stale values.\n" +
+              "Move this logic into init() or update()."
+            ).message
+          );
+        }
+
+        // ✅ capture instance var (keep this)
+        state.rsx.instanceVars.set(id.name, init);
 
         const decl = path.parentPath;
         if (decl.node.declarations.length === 1) {
@@ -214,14 +280,20 @@ module.exports = function ({ types: t }) {
         } else {
           path.remove();
         }
-
       },
 
       AssignmentExpression(path, state) {
         if (!state.rsx || state.skipRSX) return;
 
-        const left = path.node.left;
+        const { left, right } = path.node;
 
+        /**
+         * 1. HARD ERROR: mutating props directly
+         *
+         *   props.foo = ...
+         *
+         * Props are immutable in RSX and this is never valid.
+         */
         if (
           t.isMemberExpression(left) &&
           t.isIdentifier(left.object, { name: "props" })
@@ -232,17 +304,53 @@ module.exports = function ({ types: t }) {
           );
         }
 
-        if (
-          t.isIdentifier(left) &&
-          isInstanceField(left.name, state)
-        ) {
-          path.node.left = t.memberExpression(
-            t.identifier("__instance"),
-            t.identifier(left.name)
+        /**
+         * From this point on, we only care about assignments to
+         * RSX instance variables (persistent component state).
+         */
+        if (!t.isIdentifier(left)) return;
+        if (!isInstanceField(left.name, state)) return;
+
+        /**
+         * 2. WARNING: root-scope assignment derived from props
+         *
+         *   elapsedMs = props.startMs
+         *   elapsedMs = startMs   // startMs came from props destructuring
+         *
+         * This is legal JavaScript but dangerous in RSX because
+         * root scope is reactive and instance initialization
+         * happens earlier.
+         */
+        const rhsIsPropDerived =
+          referencesProps(right, t) ||
+          (
+            t.isIdentifier(right) &&
+            state.rsx.propBindings?.has(right.name)
+          );
+
+        if (rhsIsPropDerived) {
+          console.warn(
+            path.buildCodeFrameError(
+              `[RSX] Warning: assigning instance state "${left.name}" from props in root scope.\n` +
+              "Root scope is reactive and may capture stale values.\n" +
+              "Move this logic into init() or update()."
+            ).message
           );
         }
-      },
 
+        /**
+         * 3. REWRITE: persist assignment onto the instance
+         *
+         *   elapsedMs = ...
+         *     ↓
+         *   __instance.elapsedMs = ...
+         */
+        path.node.left = t.memberExpression(
+          t.identifier("__instance"),
+          t.identifier(left.name)
+        );
+      },
+      
       // Rewrite variable references
       Identifier(path, state) {
         if (!state.rsx || state.skipRSX) return;
