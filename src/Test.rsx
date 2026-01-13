@@ -1,18 +1,26 @@
-import { render } from "react-raw";
-
+// Note: render() is provided by the RSX compiler, no import needed
 
 export default function Test(props) {
   console.log("INIT once per instance");
 
-  // this is stable ref state in RSX model
-  let counter = 0;
-  counter++;
+  let counter = props.count;
 
-  console.log("counter =", counter, "props =", props);
+  function handleClick() {
+    counter+=1;
+    console.log("counter++ ", counter);
+    render();
+    
+  }
+  update((prev, current) => {
+    console.log("UPDATE", prev, "→", current);
+  });
 
-  update(() => console.log("update registered"));
-  view(() => console.log("view registered"));
-  destroy(() => console.log("destroy registered"));
-
-  return null;
+  view((current) => {
+    console.log("VIEW", current, "counter =", counter); 
+    return (
+    <>
+      <button onClick={handleClick}>Count: {counter} {current.count}</button>
+    </>
+  );
+  });
 }

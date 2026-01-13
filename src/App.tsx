@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
@@ -10,10 +10,12 @@ import Test from "./Test.rsx";
 
 
 function App() {
-  const init = useRef(false);
-  const c = useRef(0);
-  const inter = useRef(0);
-  const {fetchData, loading, data, hasNext, nextCursor} = usePaginatedFetch();
+  //const init = useRef(false);
+  //const c = useRef(0);
+  //const inter = useRef(0);
+  //const {fetchData, loading, data, hasNext, nextCursor} = usePaginatedFetch();
+
+  const [count, setCount] =  useState(0);
 
 
   /*function debounce<T>(fn: (...a: T[])=>(void), delay: number) {
@@ -48,7 +50,7 @@ function App() {
     }
   }
 
-  function downFire() {
+  /*function downFire() {
     console.log("down")
   }
   function down() {
@@ -75,12 +77,13 @@ function App() {
       removeEventListener('mouseup', up)
     }
 
-  }, [])
+  }, []) */
 
   function handleClick() {
-    if(hasNext) {
+    setCount((c) => (c + 1));
+    /* if(hasNext) {
       fetchData(nextCursor, 25)
-    }
+    } */
   }
 
   
@@ -90,13 +93,16 @@ function App() {
         {/* <Test label="Counter" /> */}
         {/* <HighResTimer></HighResTimer>
         <HighResTimerRT></HighResTimerRT> */}
-        <Test></Test>
+        <Test count={count}></Test>
         <a href="https://vite.dev" target="_blank">
           <img src={viteLogo} className="logo" alt="Vite logo" />
         </a>
         <a href="https://react.dev" target="_blank">
           <img src={reactLogo} className="logo react" alt="React logo" />
         </a>
+        <button onClick={handleClick}>
+          App button
+        </button>
       </div>
       {/* <h1>Vite + React</h1>
       <div className="card">
