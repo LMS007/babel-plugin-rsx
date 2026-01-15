@@ -14,7 +14,7 @@ export default function HighResTimerReact({
   const [elapsedMs, setElapsedMs] = useState(0);
   const [frameMs, setFrameMs] = useState(0);
   const [running, setRunning] = useState<boolean>(!!runningProp);
-  
+
 
   // ------------------------------------------------------------
   // Mutable refs (non-reactive)

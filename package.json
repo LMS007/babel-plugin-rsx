@@ -1,18 +1,19 @@
 {
-  "name": "ts-practice",
-  "private": true,
-  "version": "0.0.0",
+  "name": "babel-plugin-yourname",
+  "version": "1.0.0",
   "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "vite --config examples/vite.config.ts",
+    "build": "tsc -p ./src --outDir dist",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview --config examples/vite.config.ts"
   },
-  "dependencies": {
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",

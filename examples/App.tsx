@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+const reactLogo = '/assets/react.svg';
+const viteLogo = '/assets/vite.svg';
+
 import './App.css'
 //import {usePaginatedFetch } from  './Hooks'
 //import type {HomePageContentItem} from  './Hooks'
-import Test from "./Test.rsx";
-import HighResTimer from './TimerORD.rsx'
-import HighResTimerReact from './TimerReact'
+import HighResTimer from './stop-watch/TimerORD.rsx'
+import HighResTimerReact from './stop-watch/TimerReact'
 //import HighResTimerRT from './Timer2'
 
 

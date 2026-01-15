@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite'
+import path from "node:path";
 import react from '@vitejs/plugin-react'
 //
 //import { createRequire } from "module";
@@ -32,11 +33,13 @@ function rsxImportAnalysisPlugin(): Plugin {
 
 // https://vite.dev/config/
 export default defineConfig({
+  root: __dirname,
+  publicDir: '',
   
   resolve: {
     extensions: [".mjs", ".js", ".ts", ".jsx", ".tsx", ".json", ".rsx"],
     alias: {
-      "react-raw": "/src/raw/react-raw.ts"
+      "react-raw": path.resolve(__dirname, "../src/react-raw.ts"),
     }
   },
   plugins: [
@@ -46,7 +49,7 @@ export default defineConfig({
       babel: {
         plugins: [
           // eslint-disable-next-line @typescript-eslint/no-require-imports
-          require("./src/raw/babel-plugin-react-raw-rsx.cjs"),
+          require("../src/babel-plugin-react-raw-rsx.cjs"),
         ],
       },
     }),

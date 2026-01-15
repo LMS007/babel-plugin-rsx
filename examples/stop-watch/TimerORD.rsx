@@ -20,7 +20,7 @@ export default function HighResTimer(
   // ------------------------------------------------------------
   // View (pure projection)
   // ------------------------------------------------------------
-  view(() => {
+  view((props) => {
     const currentValue = elapsedMs.toFixed(1);
 
     return (
