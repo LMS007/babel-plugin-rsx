@@ -1,5 +1,5 @@
 
-export default function HighResTimer(
+export default function RsxTimer(
   { view, update, render, destroy, props }
 ) {
   // ------------------------------------------------------------

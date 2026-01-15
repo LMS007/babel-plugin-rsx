@@ -1,0 +1,4 @@
+{
+  "name": "High-Resolution Timer",
+  "description": "RAF-driven timer comparing RSX vs React state updates."
+}

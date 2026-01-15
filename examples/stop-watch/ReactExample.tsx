@@ -5,7 +5,7 @@ interface HighResTimerReactProps {
   running?: boolean; // optional external control
 }
 
-export default function HighResTimerReact({
+export default function ReactTimer({
   running: runningProp,
 }: HighResTimerReactProps) {
   // ------------------------------------------------------------

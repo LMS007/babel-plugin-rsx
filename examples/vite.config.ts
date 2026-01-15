@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite'
-import path from "node:path";
+//import path from "node:path";
 import react from '@vitejs/plugin-react'
 //
 //import { createRequire } from "module";
@@ -38,9 +38,6 @@ export default defineConfig({
   
   resolve: {
     extensions: [".mjs", ".js", ".ts", ".jsx", ".tsx", ".json", ".rsx"],
-    alias: {
-      "react-raw": path.resolve(__dirname, "../src/react-raw.ts"),
-    }
   },
   plugins: [
     rsxImportAnalysisPlugin(),
