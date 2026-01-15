@@ -84,7 +84,7 @@ module.exports = function ({ types: t }) {
             componentPath: null,
           };
           ensureNamedImport(path, "react", ["useRef", "useState", "useEffect"], t);
-          ensureNamedImport(path, "react-raw", ["bindRender"], t);
+          //ensureNamedImport(path, "react-raw", ["bindRender"], t);
         },
 
         exit(path, state) {
@@ -127,8 +127,7 @@ module.exports = function ({ types: t }) {
             t.objectProperty(t.identifier("__rsx_viewCb"), t.nullLiteral()),
             t.objectProperty(t.identifier("__rsx_destroyCb"), t.nullLiteral()),
             t.objectProperty(t.identifier("__rsx_viewResult"), t.nullLiteral()),
-            t.objectProperty(t.identifier("__rsx_triggerRender"),t.nullLiteral()
-)
+            //t.objectProperty(t.identifier("__rsx_triggerRender"),t.nullLiteral())
           );
 
           const initObject = t.objectExpression(initProps);
@@ -199,37 +198,23 @@ module.exports = function ({ types: t }) {
               ),
             ]),
 
-            // Bind React's re-render mechanism to this RSX instance.
-            // We capture the stable React state updater via bindRender(),
-            // then store it on the instance so RSX-controlled render()
-            // can explicitly schedule React updates later.
-            t.expressionStatement(
-              t.callExpression(t.identifier("bindRender"), [
+            t.variableDeclaration("const", [
+              t.variableDeclarator(
+                t.identifier("__rsx_triggerRender"),
                 t.arrowFunctionExpression(
                   [],
-                  t.blockStatement([
-                    t.expressionStatement(
-                      t.assignmentExpression(
-                        "=",
-                        t.memberExpression(
-                          t.identifier("__instance"),
-                          t.identifier("__rsx_triggerRender")
-                        ),
-                        t.arrowFunctionExpression(
-                          [],
-                          t.callExpression(t.identifier("__rsxForceUpdate"), [
-                            t.arrowFunctionExpression(
-                              [t.identifier("x")],
-                              t.binaryExpression("+", t.identifier("x"), t.numericLiteral(1))
-                            ),
-                          ])
-                        )
+                  t.callExpression(
+                    t.identifier("__rsxForceUpdate"),
+                    [
+                      t.arrowFunctionExpression(
+                        [t.identifier("x")],
+                        t.binaryExpression("+", t.identifier("x"), t.numericLiteral(1))
                       )
-                    )
-                  ])
-                ),
-              ])
-            )
+                    ]
+                  )
+                )
+              )
+            ])
           ]);
 
           // Add useEffect for cleanup/destroy callback
@@ -385,7 +370,7 @@ module.exports = function ({ types: t }) {
                   )
                 ])
               ),
-              // render() { __rsx_render(); if (__instance.__rsx_triggerRender) __instance.__rsx_triggerRender(); }
+              // render() {  __rsx_render(); __rsx_triggerRender(); }
               t.objectMethod(
                 "method",
                 t.identifier("render"),
@@ -394,19 +379,12 @@ module.exports = function ({ types: t }) {
                   t.expressionStatement(
                     t.callExpression(t.identifier("__rsx_render"), [])
                   ),
-                  t.ifStatement(
-                    t.memberExpression(t.identifier("__instance"), t.identifier("__rsx_triggerRender")),
-                    t.blockStatement([
-                      t.expressionStatement(
-                        t.callExpression(
-                          t.memberExpression(t.identifier("__instance"), t.identifier("__rsx_triggerRender")),
-                          []
-                        )
-                      )
-                    ])
+                  t.expressionStatement(
+                    t.callExpression(t.identifier("__rsx_triggerRender"), [])
                   )
                 ])
               ),
+
               // get props() { return __instance.__rsx_currentProps; }
               t.objectMethod(
                 "get",
