@@ -6,9 +6,5 @@
   "references": [
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
-  ],
-  "include": [
-    "src/**/*.rsx",
-    "examples/custom.d.ts"
   ]
 }

@@ -1,3 +1,4 @@
+
 export default function HighResTimer(
   { view, update, render, destroy, props }
 ) {

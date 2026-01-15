@@ -27,8 +27,7 @@
     "noUncheckedSideEffectImports": true
   },
   "include": [
-    "src",
-    "src/**/*.rsx",
-    "src/raw/custom.d.ts"
-, "examples/custom.d.ts", "examples/main.tsx", "examples/Hooks.tsx", "examples/App.tsx"  ]
+    "examples/**/*",
+    "src/custom.d.ts"
+  ]
 }

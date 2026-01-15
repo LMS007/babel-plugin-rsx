@@ -6,6 +6,8 @@ declare module "*.rsx" {
     render: () => void;
     destroy: (cb: () => void) => void;
   };
-  const Component: (ctx: Ctx) => void;
+  import * as React from "react";
+  type RSXComponent = ((ctx: Ctx, ref?: React.Ref<unknown>) => void) & React.FC<Record<string, unknown>>;
+  const Component: RSXComponent;
   export default Component;
 }
