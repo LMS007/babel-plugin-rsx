@@ -273,7 +273,62 @@ Because nothing re‑runs implicitly:
 There is nothing to “optimize around.”
 
 ---
+## Why `render()` in RSX Is Faster
 
+When you call `render()` in RSX, you skip the overhead that React incurs on every update:
+
+| React (on every render)                        | RSX (on `render()`)                    |
+| ---------------------------------------------- | -------------------------------------- |
+| Re‑executes entire component function          | Only re‑runs the `view()` callback     |
+| Runs all hooks sequentially                    | No hooks to run                        |
+| Compares dependency arrays (`useMemo`, etc.)   | No dependency tracking                 |
+| Recreates closures and inline functions        | Functions created once, persist        |
+| Checks `memo` wrappers for prop changes        | No memo wrappers needed                |
+| Schedules effects, flushes effect cleanup      | Side‑effects are imperative code       |
+
+### The Real Cost of Hooks
+
+In React, even a "simple" component with a few hooks pays these costs **every render**:
+
+```jsx
+function ReactTimer() {
+  const [time, setTime] = useState(0);           // hook 1
+  const intervalRef = useRef(null);              // hook 2
+  const start = useCallback(() => { ... }, []);  // hook 3 + dep check
+  const stop = useCallback(() => { ... }, []);   // hook 4 + dep check
+  
+  useEffect(() => { ... }, [time]);              // hook 5 + dep check + cleanup
+  
+  return <div>{time}</div>;
+}
+```
+
+Every frame: 5 hook calls, 3 dependency array comparisons, potential effect scheduling.
+
+### RSX Equivalent
+
+```jsx
+function RsxTimer({ view, render }) {
+  let time = 0;
+  let intervalId = null;
+  
+  function start() { intervalId = setInterval(() => { time++; render(); }, 1000); }
+  function stop() { clearInterval(intervalId); }
+  
+  view(() => <div>{time}</div>);
+}
+```
+
+On `render()`: just the `view()` callback runs. No hook overhead. No comparisons.
+
+### The performance gap widens with:
+
+* **High‑frequency updates** (60fps animations, real‑time data)
+* **Many instances** (100+ timers, particles, list items)
+* **Complex hook graphs** (effects depending on effects)
+
+
+---
 ## What Types of React Components Are Perfect for RSX conversion?
 
 RSX shines where **imperative control beats declarative diffusion**.
