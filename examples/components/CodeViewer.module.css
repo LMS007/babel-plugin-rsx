@@ -5,6 +5,8 @@
   font-size: 13px;
   line-height: 1.5;
   height: 100%;
+  width: 100%;
+  max-height: 100%;
   display: flex;
   flex-direction: column;
 }
@@ -26,8 +28,53 @@
   font-size: 14px;
 }
 
+.copyButton {
+  margin-left: auto;
+  padding: 4px 10px;
+  font-size: 11px;
+  background: #30363d;
+  border: none;
+  border-radius: 4px;
+  color: #8b949e;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.copyButton:hover {
+  background: #484f58;
+  color: #e6edf3;
+}
+
+.contentWrapper {
+  display: flex;
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+
+.lineNumbers {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 0;
+  padding-left: 16px;
+  padding-right: 12px;
+  text-align: right;
+  color: #484f58;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  user-select: none;
+  border-right: 1px solid #30363d;
+  flex-shrink: 0;
+}
+
+.lineNumbers span {
+  display: block;
+}
+
 .content {
   padding: 16px;
+  padding-left: 12px;
   overflow: auto;
   flex: 1;
 }
