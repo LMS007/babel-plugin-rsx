@@ -367,12 +367,12 @@ It is meant to be **sprinkled into existing JSX projects**:
 - Use RSX for hot paths and real‑time subsystems
 
 ```jsx
-import ReactComponet from 'ReactComponet.tsx'
-import RsxComponet from 'RsxComponet.rsx'
+import ReactComponent from 'ReactComponent.tsx'
+import RsxComponent from 'RsxComponent.rsx'
 ...
 <div>
- <ReactComponet name={hello world}/>
- <RsxComponet name={hello world}/>
+ <ReactComponent name={hello world}/>
+ <RsxComponent name={hello world}/>
 </div>
 ```
 
