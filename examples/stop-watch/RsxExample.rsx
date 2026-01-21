@@ -1,7 +1,4 @@
-
-export default function RsxTimer(
-  { view, update, render, destroy, props }
-) {
+export default function RsxTimer({ view, update, render, destroy, props }) {
   // ------------------------------------------------------------
   // Persistent instance state
   // ------------------------------------------------------------
@@ -9,23 +6,23 @@ export default function RsxTimer(
   let lastMs = 0;
   let elapsedMs = 0;
   let frameMs = 0;
+  let frameCount = 0;
 
   let rafId = null;
   let targetFrameMs = 16; // ~60fps default
   let accumulatedMs = 0;
 
-  if (props.running) {
-    start();
-  }
-
   // ------------------------------------------------------------
   // View (pure projection)
   // ------------------------------------------------------------
   view((props) => {
+    if (props.onRenderStart) {
+      props.onRenderStart();
+    }
     const currentValue = elapsedMs.toFixed(1);
 
-    return (
-      <div style={{ fontFamily: "monospace", width: 280 }}>
+    const result = (
+      <div style={{ fontFamily: "monospace", width: 280, textAlign: "center" }}>
         <h3>{props.label}</h3>
 
         <div
@@ -36,6 +33,10 @@ export default function RsxTimer(
           }}
         >
           {currentValue}
+        </div>
+
+        <div style={{ textAlign: "center", marginBottom: 8, fontSize: 12, color: "#888" }}>
+          Frames: {frameCount}
         </div>
 
         <div style={{ textAlign: "center", marginBottom: 12 }}>
@@ -62,26 +63,32 @@ export default function RsxTimer(
             marginTop: 10,
           }}
         >
-          <button onClick={increaseFrameRate}>
-            Increase Frame Rate
-          </button>
-          <button onClick={decreaseFrameRate}>
-            Decrease Frame Rate
-          </button>
+          <button onClick={increaseFrameRate}>Increase Frame Rate</button>
+          <button onClick={decreaseFrameRate}>Decrease Frame Rate</button>
         </div>
       </div>
     );
+
+    // Track render time if callback provided
+    if (props.onRenderEnd) {
+      props.onRenderEnd();
+    }
+
+    return result;
   });
 
   // ------------------------------------------------------------
   // Update (prop-driven reactions)
   // ------------------------------------------------------------
   update((prev, next) => {
-    if (prev.running !== next.running) {
-      next.running ? start() : stop();
+    if (!prev?.running && next?.running) {
+      reset();
+      start();
+    } else if (prev?.running && !next?.running) {
+      stop();
     }
   });
-  
+
   // ------------------------------------------------------------
   // Destroy
   // ------------------------------------------------------------
@@ -113,7 +120,10 @@ export default function RsxTimer(
   }
 
   function reset() {
+    stop();
+
     accumulatedMs = 0;
+    frameCount = 0;
 
     const now = performance.now();
     startMs = now;
@@ -127,6 +137,7 @@ export default function RsxTimer(
     const delta = now - lastMs;
 
     if (delta >= targetFrameMs) {
+      frameCount++;
       frameMs = delta;
       elapsedMs = accumulatedMs + (now - startMs);
       lastMs = now;

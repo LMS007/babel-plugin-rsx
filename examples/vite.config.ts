@@ -1,54 +1,23 @@
-import { defineConfig } from 'vite'
-//import path from "node:path";
-import react from '@vitejs/plugin-react'
-//
-//import { createRequire } from "module";
-import { transform as esbuildTransform } from "esbuild";
-import type { Plugin } from "vite";
-//const require = createRequire(import.meta.url);
+import react from "@vitejs/plugin-react";
+import path from "path";
+import { fileURLToPath } from "url";
+import { defineConfig } from "vite";
+import { rsxVitePlugin } from "../src/vite.js";
 
-function rsxImportAnalysisPlugin(): Plugin {
-  return {
-    name: "vite-rsx-import-analysis",
-    enforce: "pre",
-
-    async transform(code, id) {
-      if (!id.endsWith(".rsx")) return null;
-
-      const result = await esbuildTransform(code, {
-        loader: "jsx",
-        jsx: "automatic",
-        sourcemap: true,
-        sourcefile: id,
-      });
-
-      return {
-        code: result.code,
-        map: result.map || null,
-      };
-    },
-  };
-}
-//
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // https://vite.dev/config/
 export default defineConfig({
   root: __dirname,
-  publicDir: '',
-  
+  publicDir: "",
+
   resolve: {
     extensions: [".mjs", ".js", ".ts", ".jsx", ".tsx", ".json", ".rsx"],
   },
   plugins: [
-    rsxImportAnalysisPlugin(),
+    rsxVitePlugin(),
     react({
       include: /\.(jsx|tsx|rsx)$/,
-      babel: {
-        plugins: [
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
-          require("../src/babel-plugin-rsx.cjs"),
-        ],
-      },
     }),
-  ]
-})
+  ],
+});
