@@ -75,7 +75,7 @@ export default function Example(ctx) {
 ### 1. Install the Package
 
 ```bash
-npm install babel-plugin-rsx
+npm install @lms5400/babel-plugin-rsx
 ```
 
 ### 2. Configure Babel
