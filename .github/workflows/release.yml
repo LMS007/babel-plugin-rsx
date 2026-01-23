@@ -16,32 +16,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22.x"
-          registry-url: "https://registry.npmjs.org"
-          cache: "yarn"
+      # Optional sanity check (recommended once)
+      - name: Show Node & npm versions
+        run: |
+          node -v
+          npm -v
 
       - name: Install dependencies
         run: yarn --frozen-lockfile
 
-      - name: Force pure OIDC (disable token auth)
-        run: |
-          echo "Before cleanup:"
-          env | grep -E 'NPM|NODE_AUTH' || true
-
-          unset NODE_AUTH_TOKEN
-          rm -f "$NPM_CONFIG_USERCONFIG"
-          rm -f ~/.npmrc
-
-          npm config delete always-auth || true
-          npm config delete registry || true
-
-          echo "After cleanup:"
-          env | grep -E 'NPM|NODE_AUTH' || true
-          npm config list
-
-      - name: Publish to npm
+      - name: Publish to npm (OIDC)
         run: npm publish --access public --provenance
 
       - name: Create GitHub Release
