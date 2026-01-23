@@ -25,11 +25,21 @@ jobs:
       - name: Install dependencies
         run: yarn --frozen-lockfile
 
-      - name: List repo files
+      - name: Force pure OIDC (disable token auth)
         run: |
-          echo "=== Repository root ==="
-          pwd
-          ls -la
+          echo "Before cleanup:"
+          env | grep -E 'NPM|NODE_AUTH' || true
+
+          unset NODE_AUTH_TOKEN
+          rm -f "$NPM_CONFIG_USERCONFIG"
+          rm -f ~/.npmrc
+
+          npm config delete always-auth || true
+          npm config delete registry || true
+
+          echo "After cleanup:"
+          env | grep -E 'NPM|NODE_AUTH' || true
+          npm config list
 
       - name: Publish to npm
         run: npm publish --access public --provenance
