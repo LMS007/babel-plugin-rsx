@@ -1,11 +1,15 @@
 {
   "name": "@lms5400/babel-plugin-rsx",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": false,
   "description": "Babel plugin for RSX Components",
   "type": "module",
   "main": "./src/babel-plugin-rsx.cjs",
   "types": "./src/custom.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LMS007/babel-plugin-rsx"
+  },
   "exports": {
     ".": {
       "require": "./src/babel-plugin-rsx.cjs",
