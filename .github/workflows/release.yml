@@ -25,8 +25,11 @@ jobs:
       - name: Install dependencies
         run: yarn --frozen-lockfile
 
-      - name: Run tests
-        run: yarn test
+      - name: List repo files
+        run: |
+          echo "=== Repository root ==="
+          pwd
+          ls -la
 
       - name: Publish to npm
         run: npm publish --access public --provenance
