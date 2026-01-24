@@ -156,7 +156,7 @@ export default defineConfig({
 });
 ```
 
-### 3. Optional Add TypeScript Support
+### 3. Optional - Add TypeScript Support
 
 Add the RSX types to your `tsconfig.json`:
 
@@ -185,30 +185,7 @@ export default function MyComponent({ view, render, props }: Ctx<MyProps>) {
 }
 ```
 
-### 4. Create Your First RSX Component
-
-Create a file with the `.rsx` extension:
-
-```jsx
-// Counter.rsx
-export default function Counter({ view, render }) {
-  let count = 0;
-
-  function increment() {
-    count++;
-    render();
-  }
-
-  view((props) => (
-    <>
-      <label>{props.name}</label>
-      <button onClick={increment}>Count: {count}</button>
-    </>
-  ));
-}
-```
-
-### 5. Configure VS Code for RSX Files
+### 4. Optional - Configure VS Code for RSX Files
 
 To get proper syntax highlighting and IntelliSense for `.rsx` files in VS Code, add this to your workspace settings:
 
@@ -221,7 +198,7 @@ To get proper syntax highlighting and IntelliSense for `.rsx` files in VS Code, 
 }
 ```
 
-### 6. Configure ESLint for RSX Files
+### 5. Optional - Configure ESLint for RSX Files
 
 > **Note:** A dedicated `eslint-plugin-rsx` with RSX-specific rules is coming soon.
 
@@ -248,6 +225,29 @@ export default [
     },
   },
 ];
+```
+
+### 6. Create Your First RSX Component
+
+Create a file with the `.rsx` extension:
+
+```jsx
+// Counter.rsx
+export default function Counter({ view, render }) {
+  let count = 0;
+
+  function increment() {
+    count++;
+    render();
+  }
+
+  view((props) => (
+    <>
+      <label>{props.name}</label>
+      <button onClick={increment}>Count: {count}</button>
+    </>
+  ));
+}
 ```
 
 ### 7. Use It in Your React App
