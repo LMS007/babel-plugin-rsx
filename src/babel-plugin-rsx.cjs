@@ -674,11 +674,11 @@ module.exports = function ({ types: t }) {
           "useState",
           "useCallback",
           "useMemo",
+          "useRef",
           // "useContext",
           // "useEffect",
           // "useLayoutEffect",
           // "useReducer",
-          // "useRef",
           // "useImperativeHandle",
           // "useInsertionEffect",
           // "useDeferredValue",
@@ -709,35 +709,41 @@ module.exports = function ({ types: t }) {
         // FIX: Use state.bannedHooks with null check
         if (state.bannedHooks && state.bannedHooks.has(callee.node.name)) {
           const name = callee.node.name;
+          const filename = state.filename || "unknown";
+          const loc = path.node.loc?.start;
+          const location = loc ? `:${loc.line}:${loc.column}` : "";
 
+          // ANSI colors for terminal
+          const yellow = "\x1b[33m";
+          const dim = "\x1b[2m";
+          const reset = "\x1b[0m";
+
+          let hint;
           if (name === "useCallback") {
-            throw path.buildCodeFrameError(
-              "[RSX] useCallback() is not allowed in .rsx files.\n" +
-                "RSX guarantees stable function identity by default.\n" +
-                "Define functions normally and call render() when updates are needed."
-            );
+            hint =
+              "  RSX guarantees stable function identity by default.\n" +
+              "  Define functions normally and call render() when updates are needed.";
+          } else if (name === "useState") {
+            hint =
+              "  Use RSX local variables for instance state, or external hooks for shared state.";
+          } else if (name === "useMemo") {
+            hint =
+              "  RSX code does not re-run on every render.\n" +
+              "  Move expensive work to explicit update logic or manual memoization.";
+          } else if (name === "useRef") {
+            hint =
+              "  RSX local variables already persist across renders.\n" +
+              "  Use a plain variable instead: let myRef = null;";
+          } else {
+            hint =
+              "  RSX components do not support React hooks.\n" +
+              "  Use RSX lifecycle methods (view, update, destroy, render) instead.";
           }
 
-          if (name === "useState") {
-            throw path.buildCodeFrameError(
-              "[RSX] useState() is not allowed in .rsx files.\n" +
-                "Use RSX local variables for instance state, or external hooks for shared state."
-            );
-          }
-
-          if (name === "useMemo") {
-            throw path.buildCodeFrameError(
-              "[RSX] useMemo() is not allowed in .rsx files.\n" +
-                "RSX code does not re-run on every render.\n" +
-                "Move expensive work to explicit update logic or manual memoization."
-            );
-          }
-
-          // FIX: Generic error for any other banned hook
-          throw path.buildCodeFrameError(
-            `[RSX] ${name}() is not allowed in .rsx files.\n` +
-              "RSX components do not support React hooks.\n" +
-              "Use RSX lifecycle methods (view, update, destroy, render) instead."
+          console.warn(
+            `\n${yellow}[RSX] Warning: ${name}() detected${reset}\n` +
+              `${dim}${filename}${location}${reset}\n` +
+              `${hint}\n`
           );
         }
       },

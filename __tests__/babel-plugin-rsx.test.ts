@@ -1,5 +1,6 @@
 import { transformSync } from "@babel/core";
 import { describe, expect, it } from "vitest";
+import { vi } from "vitest";
 import rsxVitePlugin from "../src/babel-plugin-rsx.cjs";
 
 function transform(code: string, filename = "test.rsx") {
@@ -77,22 +78,50 @@ describe("babel-plugin-rsx", () => {
   });
 
   describe("hook banning", () => {
-    it("throws error for useState", () => {
+    it("warns for useState", () => {
       const input = `import { useState } from 'react';
       export default function App({ view }) {
         const [x, setX] = useState(0);
         view(() => <div>{x}</div>);
       }`;
-      expect(() => transform(input)).toThrow(/useState.*not allowed/);
+      const spy = vi.spyOn(console, "warn");
+      transform(input);
+      expect(spy).toHaveBeenCalled();
+      spy.mockRestore();
     });
 
-    it("throws error for useMemo", () => {
+    it("warns for useMemo", () => {
       const input = `import { useMemo } from 'react';
       export default function App({ view }) {
         const val = useMemo(() => 42, []);
+      }`;
+      const spy = vi.spyOn(console, "warn");
+      transform(input);
+      expect(spy).toHaveBeenCalled();
+      spy.mockRestore();
+    });
+
+    it.only("warns for useCallback", () => {
+      const input = `import { useCallback } from 'react';
+      export default function App({ view }) {
+        const cb = useCallback(()=>{},[]);
+      }`;
+      const spy = vi.spyOn(console, "warn");
+      transform(input);
+      expect(spy).toHaveBeenCalled();
+      spy.mockRestore();
+    });
+
+    it("warns for useRef", () => {
+      const input = `import { useRef } from 'react';
+      export default function App({ view }) {
+        const val = useRef(42);
         view(() => <div>{val}</div>);
       }`;
-      expect(() => transform(input)).toThrow(/useMemo.*not allowed/);
+      const spy = vi.spyOn(console, "warn");
+      transform(input);
+      expect(spy).toHaveBeenCalled();
+      spy.mockRestore();
     });
   });
 
