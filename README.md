@@ -51,7 +51,7 @@ export default function Example(ctx) {
   function increment() {
     value++;
     render(); // explicit re-render
-  }
+  }y
 
   view((props) => {
     // The render function
@@ -78,6 +78,12 @@ export default function Example(ctx) {
 npm install @lms5400/babel-plugin-rsx
 ```
 
+> **Note:** This plugin requires `@babel/core` and `@babel/preset-react` as peer dependencies. Most React projects using Vite or Next.js already have these bundled internally. If you're using Webpack or a custom setup, check if they exist in your `node_modules/`. If not, install them:
+>
+> ```bash
+> npm install --save-dev @babel/core @babel/preset-react
+> ```
+
 ### 2. Configure Babel
 
 Add the plugin to your Babel configuration. Choose the setup that matches your bundler:
@@ -92,7 +98,7 @@ module.exports = {
     "@babel/preset-react",
     "@babel/preset-typescript", // if using TypeScript
   ],
-  plugins: ["babel-plugin-rsx"],
+  plugins: ["@lms5400/babel-plugin-rsx"],
   // Ensure .rsx files are processed
   overrides: [
     {
@@ -120,7 +126,7 @@ module.exports = {
           loader: "babel-loader",
           options: {
             presets: ["@babel/preset-react", "@babel/preset-typescript"],
-            plugins: ["babel-plugin-rsx"],
+            plugins: ["@lms5400/babel-plugin-rsx"],
           },
         },
       },
@@ -135,19 +141,16 @@ module.exports = {
 // vite.config.ts
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { rsxPlugin } from "babel-plugin-rsx/vite";
+import { rsxVitePlugin } from "@lms5400/babel-plugin-rsx/vite";
 
 export default defineConfig({
   resolve: {
     extensions: [".mjs", ".js", ".ts", ".jsx", ".tsx", ".json", ".rsx"],
   },
   plugins: [
-    rsxPlugin(),
+    rsxVitePlugin(),
     react({
-      include: /\.(jsx|tsx|rsx)$/,
-      babel: {
-        plugins: [require("babel-plugin-rsx")],
-      },
+      include: /\.(jsx|tsx|rsx)$/
     }),
   ],
 });
@@ -161,7 +164,7 @@ Add the RSX types to your `tsconfig.json`:
 {
   "compilerOptions": {
     "jsx": "react-jsx",
-    "types": ["babel-plugin-rsx/types"],
+    "types": ["@lms5400/babel-plugin-rsx/types"],
   },
 }
 ```
@@ -171,7 +174,7 @@ This provides full type support for `.rsx` files, including the `Ctx` type with 
 You can also import the types directly if needed:
 
 ```typescript
-import type { Ctx } from "babel-plugin-rsx";
+import type { Ctx } from "@lms5400/babel-plugin-rsx";
 
 interface MyProps {
   name: string;
@@ -205,7 +208,49 @@ export default function Counter({ view, render }) {
 }
 ```
 
-### 5. Use It in Your React App
+### 5. Configure VS Code for RSX Files
+
+To get proper syntax highlighting and IntelliSense for `.rsx` files in VS Code, add this to your workspace settings:
+
+```jsonc
+// .vscode/settings.json
+{
+  "files.associations": {
+    "*.rsx": "javascriptreact"
+  }
+}
+```
+
+### 6. Configure ESLint for RSX Files
+
+> **Note:** A dedicated `eslint-plugin-rsx` with RSX-specific rules is coming soon.
+
+For now, you can lint `.rsx` files using standard React/TypeScript rules with hooks disabled (since RSX bans hooks by design):
+
+```javascript
+// eslint.config.js
+export default [
+  // ... your existing config
+
+  // RSX files: use React rules but disable hooks
+  {
+    files: ["**/*.rsx"],
+    languageOptions: {
+      ecmaVersion: 2020,
+      parserOptions: {
+        ecmaFeatures: { jsx: true },
+      },
+    },
+    rules: {
+      // Disable react-hooks rules (RSX doesn't use hooks)
+      "react-hooks/rules-of-hooks": "off",
+      "react-hooks/exhaustive-deps": "off",
+    },
+  },
+];
+```
+
+### 7. Use It in Your React App
 
 ```tsx
 import Counter from "./Counter.rsx";
@@ -219,6 +264,7 @@ function App() {
   );
 }
 ```
+
 
 ## The Core Idea: Render On Demand
 

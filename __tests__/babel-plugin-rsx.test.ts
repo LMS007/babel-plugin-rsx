@@ -1,10 +1,10 @@
 import { transformSync } from "@babel/core";
 import { describe, expect, it } from "vitest";
-import rsxPlugin from "../src/babel-plugin-rsx.cjs";
+import rsxVitePlugin from "../src/babel-plugin-rsx.cjs";
 
 function transform(code: string, filename = "test.rsx") {
   const result = transformSync(code, {
-    plugins: [rsxPlugin],
+    plugins: [rsxVitePlugin],
     filename,
     presets: ["@babel/preset-react"],
   });
