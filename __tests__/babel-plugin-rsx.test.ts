@@ -77,7 +77,7 @@ describe("babel-plugin-rsx", () => {
     });
   });
 
-  describe("hook banning", () => {
+  /*describe("hook banning", () => {
     it("warns for useState", () => {
       const input = `import { useState } from 'react';
       export default function App({ view }) {
@@ -101,7 +101,7 @@ describe("babel-plugin-rsx", () => {
       spy.mockRestore();
     });
 
-    it.only("warns for useCallback", () => {
+    it("warns for useCallback", () => {
       const input = `import { useCallback } from 'react';
       export default function App({ view }) {
         const cb = useCallback(()=>{},[]);
@@ -123,7 +123,7 @@ describe("babel-plugin-rsx", () => {
       expect(spy).toHaveBeenCalled();
       spy.mockRestore();
     });
-  });
+  });*/
 
   describe("props handling", () => {
     it("throws error when mutating props", () => {

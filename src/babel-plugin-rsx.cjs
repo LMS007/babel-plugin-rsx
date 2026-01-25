@@ -1,3 +1,7 @@
+const yellow = "\x1b[33m";
+const dim = "\x1b[2m";
+const reset = "\x1b[0m";
+
 function ensureNamedImport(programPath, source, names, t) {
   let importDecl = programPath.node.body.find(
     (n) => t.isImportDeclaration(n) && n.source.value === source
@@ -543,7 +547,25 @@ module.exports = function ({ types: t }) {
           decl.isArrowFunctionExpression()
         ) {
           state.rsx.componentPath = decl;
-          // No longer need to record prop bindings since props is explicit
+
+          const params = decl.node.params;
+          const filename = state.filename || "unknown";
+
+          if (
+            params.length === 1 &&
+            t.isIdentifier(params[0])
+          ) {
+            const name = params[0].name;
+            const loc = params[0].loc?.start;
+            console.warn(
+              `${yellow}[RSX] Warning: RSX component parameter "${name}" is not destructured.${reset}\n` +
+              `RSX always passes a context object and destructures it internally.\n` +
+              `Use: function Component({ view, update, render, props }) { ... }\n` +
+              (loc
+                ? `  at ${filename}:${loc.line}:${loc.column}`
+                : `  at ${filename}`)
+            );
+          }
         }
       },
 
@@ -705,8 +727,9 @@ module.exports = function ({ types: t }) {
         const callee = path.get("callee");
         if (!callee.isIdentifier()) return;
         if (isInternal(callee.node.name)) return;
-
-        // FIX: Use state.bannedHooks with null check
+        //
+        // REMOVED until we can safely ignore the compiler-injected useEffect and useRef
+        /*
         if (state.bannedHooks && state.bannedHooks.has(callee.node.name)) {
           const name = callee.node.name;
           const filename = state.filename || "unknown";
@@ -719,6 +742,7 @@ module.exports = function ({ types: t }) {
           const reset = "\x1b[0m";
 
           let hint;
+          
           if (name === "useCallback") {
             hint =
               "  RSX guarantees stable function identity by default.\n" +
@@ -745,7 +769,7 @@ module.exports = function ({ types: t }) {
               `${dim}${filename}${location}${reset}\n` +
               `${hint}\n`
           );
-        }
+        }*/
       },
     },
   };
