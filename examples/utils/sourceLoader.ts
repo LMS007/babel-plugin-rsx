@@ -1,11 +1,18 @@
 // Source code for examples - loaded at build time via Vite's ?raw import
+
 import rsxTimerSource from "../stop-watch/RsxExample.rsx?raw";
 import reactTimerSource from "../stop-watch/ReactExample.tsx?raw";
+import rsxDataTableSource from "../data-table/RsxExample.rsx?raw";
+import reactDataTableSource from "../data-table/ReactExample.tsx?raw";
 
 export const SOURCE_CODE: Record<string, { rsx: string; react: string }> = {
   "stop-watch": {
     rsx: rsxTimerSource,
     react: reactTimerSource,
+  },
+  "data-table": {
+    rsx: rsxDataTableSource,
+    react: reactDataTableSource,
   },
 };
 

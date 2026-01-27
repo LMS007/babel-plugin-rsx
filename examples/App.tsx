@@ -13,6 +13,9 @@ import PerformanceTest from "./stop-watch/PerformanceTest.tsx";
 import ReactTimer from "./stop-watch/ReactExample.tsx";
 import RsxTimer from "./stop-watch/RsxExample.rsx";
 
+import ReactDataTable from "./data-table/ReactExample.tsx";
+import RsxDataTable from "./data-table/RsxExample.rsx";
+
 type Example = {
   id: string;
   name: string;
@@ -37,6 +40,13 @@ const EXAMPLES: Example[] = [
     Rsx: PerformanceTest,
     React: PerformanceTest,
     standalone: true,
+  },
+  {
+    id: "data-table",
+    name: "Data Table",
+    description: "Compare React and RSX data table implementations.",
+    Rsx: RsxDataTable,
+    React: ReactDataTable,
   },
 ];
 
