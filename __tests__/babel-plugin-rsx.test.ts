@@ -198,6 +198,14 @@ describe("babel-plugin-rsx", () => {
       expect(() => transform(input)).not.toThrow();
     });
 
+    it("handles missing update function gracefully", () => {
+      const input = `export default function App({ view }) {
+        view(() => <div>Test</div>);
+        // No update function provided
+      }`;
+      expect(() => transform(input)).not.toThrow();
+    });
+
     it("handles multiple variables", () => {
       const input = `export default function App({ view }) {
         let a = 1;

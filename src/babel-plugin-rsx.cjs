@@ -473,7 +473,6 @@ module.exports = function ({ types: t }) {
         // Runs on every call AFTER init
         // ------------------------------------------------------------
         const updateAndRender = t.ifStatement(
-          //
           t.logicalExpression(
             "&&",
             t.logicalExpression(
@@ -491,26 +490,31 @@ module.exports = function ({ types: t }) {
               t.memberExpression(t.identifier("__instance"), t.identifier("__rsx_currentProps"))
             )
           ),
-          //
           t.blockStatement([
-            // call update(prev, current)
-            t.expressionStatement(
-              t.callExpression(
-                t.memberExpression(t.identifier("__instance"), t.identifier("__rsx_updateCb")),
-                [
-                  t.memberExpression(t.identifier("__instance"), t.identifier("__rsx_prevProps")),
-                  t.memberExpression(
-                    t.identifier("__instance"),
-                    t.identifier("__rsx_currentProps")
-                  ),
-                ]
-              )
+            // guarded update
+            t.ifStatement(
+              t.memberExpression(t.identifier("__instance"), t.identifier("__rsx_updateCb")),
+              t.blockStatement([
+                t.expressionStatement(
+                  t.callExpression(
+                    t.memberExpression(t.identifier("__instance"), t.identifier("__rsx_updateCb")),
+                    [
+                      t.memberExpression(t.identifier("__instance"), t.identifier("__rsx_prevProps")),
+                      t.memberExpression(
+                        t.identifier("__instance"),
+                        t.identifier("__rsx_currentProps")
+                      ),
+                    ]
+                  )
+                ),
+              ])
             ),
 
-            // auto render after update
+            // always render
             t.expressionStatement(t.callExpression(t.identifier("__rsx_render"), [])),
           ])
         );
+
         // ------------------------------------------------------------
         // Replace the function body
         // ------------------------------------------------------------
