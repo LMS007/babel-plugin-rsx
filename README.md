@@ -35,15 +35,12 @@ RSX flips this model.
 ### Basic Structure
 
 ```jsx
-export default function Example(ctx) {
+export default function Example({ view, update, destroy, render, props }) {
   // Everything in this scope runs exactly once on
   // mount and persists for the duration of the component.
 
-  // life cycle methods from the ctx param
-  const { view, update, destroy, render } = ctx;
-
   // Initial props snapshot (mount only)
-  const initialProps = ctx.props;
+  const initialProps = props;
 
   // Persistent state
   let value = 0;
@@ -88,7 +85,28 @@ npm install @lms5400/babel-plugin-rsx
 
 Add the plugin to your Babel configuration. Choose the setup that matches your bundler:
 
-#### Option A: Babel Config (works with any bundler)
+#### Option A: Vite
+
+```typescript
+// vite.config.ts
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import { rsxVitePlugin } from "@lms5400/babel-plugin-rsx/vite";
+
+export default defineConfig({
+  resolve: {
+    extensions: [".mjs", ".js", ".ts", ".jsx", ".tsx", ".json", ".rsx"],
+  },
+  plugins: [
+    rsxVitePlugin(),
+    react({
+      include: /\.(jsx|tsx|rsx)$/
+    }),
+  ],
+});
+```
+
+#### Option C: Babel Config (works with any bundler)
 
 Create or update your `babel.config.js`:
 
@@ -109,7 +127,7 @@ module.exports = {
 };
 ```
 
-#### Option B: Webpack
+#### Option C: Webpack
 
 ```javascript
 // webpack.config.js
@@ -135,28 +153,17 @@ module.exports = {
 };
 ```
 
-#### Option C: Vite
+### 3. [Recommended] – Configure ESLint for RSX Files
 
-```typescript
-// vite.config.ts
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import { rsxVitePlugin } from "@lms5400/babel-plugin-rsx/vite";
+For RSX-specific linting and recommended VS Code lint configuration, use the official plugin:
 
-export default defineConfig({
-  resolve: {
-    extensions: [".mjs", ".js", ".ts", ".jsx", ".tsx", ".json", ".rsx"],
-  },
-  plugins: [
-    rsxVitePlugin(),
-    react({
-      include: /\.(jsx|tsx|rsx)$/
-    }),
-  ],
-});
-```
+https://github.com/LMS007/eslint-plugin-rsx
 
-### 3. Optional - Add TypeScript Support
+#### Files to edit/create:
+- `eslint.config.js`
+- `vscode/settings.json`
+
+### 4. [Optional] - Add TypeScript Support
 
 Add the RSX types to your `tsconfig.json`:
 
@@ -185,49 +192,11 @@ export default function MyComponent({ view, render, props }: Ctx<MyProps>) {
 }
 ```
 
-### 4. Optional - Configure VS Code for RSX Files
 
-To get proper syntax highlighting and IntelliSense for `.rsx` files in VS Code, add this to your workspace settings:
 
-```jsonc
-// .vscode/settings.json
-{
-  "files.associations": {
-    "*.rsx": "javascriptreact"
-  }
-}
-```
 
-### 5. Optional - Configure ESLint for RSX Files
 
-> **Note:** A dedicated `eslint-plugin-rsx` with RSX-specific rules is coming soon.
-
-For now, you can lint `.rsx` files using standard React/TypeScript rules with hooks disabled (since RSX bans hooks by design):
-
-```javascript
-// eslint.config.js
-export default [
-  // ... your existing config
-
-  // RSX files: use React rules but disable hooks
-  {
-    files: ["**/*.rsx"],
-    languageOptions: {
-      ecmaVersion: 2020,
-      parserOptions: {
-        ecmaFeatures: { jsx: true },
-      },
-    },
-    rules: {
-      // Disable react-hooks rules (RSX doesn't use hooks)
-      "react-hooks/rules-of-hooks": "off",
-      "react-hooks/exhaustive-deps": "off",
-    },
-  },
-];
-```
-
-### 6. Create Your First RSX Component
+## Create Your First RSX Component
 
 Create a file with the `.rsx` extension:
 
