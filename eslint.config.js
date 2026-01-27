@@ -4,6 +4,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import globals from "globals";
 import tseslint from "typescript-eslint";
+import rsx from "@lms5400/eslint-plugin-rsx";
 
 export default [
   {
@@ -36,6 +37,32 @@ export default [
           varsIgnorePattern: "^_",
         },
       ],
+    },
+  },
+  // ----------------------------------------
+  // RSX files
+  // ----------------------------------------
+  {
+    files: ["**/*.rsx"],
+    plugins: {
+      rsx,
+    },
+    languageOptions: {
+      ecmaVersion: "latest",
+      sourceType: "module",
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+      },
+      parserOptions: {
+        ecmaFeatures: { jsx: true },
+      },
+    },
+    rules: {
+      ...js.configs.recommended.rules,
+      "rsx/no-react-hooks": "error",
+      "rsx/no-use-ref": "warn",
+      "rsx/require-ctx-destructure": "error",
     },
   },
   eslintConfigPrettier,
