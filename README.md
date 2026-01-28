@@ -153,7 +153,7 @@ module.exports = {
 };
 ```
 
-### 3. [Recommended] – Configure ESLint for RSX Files
+### 3. [Highly Recommended] – Configure ESLint for RSX Files
 
 For RSX-specific linting and recommended VS Code lint configuration, use the official plugin:
 
@@ -269,6 +269,7 @@ RSX removes the root cause:
 - The component function does **not re‑execute** on updates
 - Variables persist naturally
 - Side‑effects are just normal code
+- All data can be mutated
 - Updates are intentional
 
 Because nothing re‑runs implicitly:
@@ -277,7 +278,7 @@ Because nothing re‑runs implicitly:
 - `callback` stability is irrelevant
 - dependency arrays disappear
 
-There is nothing to “optimize around.”
+ Mutating data in RSX is safe because the framework does not rely on immutability or identity checks to decide when to update the UI. You explicitly control when rendering happens, so there’s no hidden scheduling, diffing, or replay that could be confused by in-place changes and therefore there is nothing to “optimize around.” or “safeguard.”
 
 ---
 
@@ -293,6 +294,7 @@ When you call `render()` in RSX, you skip the overhead that React incurs on ever
 | Recreates closures and inline functions      | Functions created once, persist    |
 | Checks `memo` wrappers for prop changes      | No memo wrappers needed            |
 | Schedules effects, flushes effect cleanup    | Side‑effects are imperative code   |
+| Data needs to be copied for immutability     | No need to copy, just mutate in place |
 
 ### The Real Cost of Hooks
 

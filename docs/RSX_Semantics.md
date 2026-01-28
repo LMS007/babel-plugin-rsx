@@ -1,6 +1,6 @@
 # RSX Component Execution & Lifecycle Specification
 
-This document defines the **runtime semantics of an RSX component**. It is intentionally descriptive and normative, not tutorial. The goal is to allow automated systems (LLMs, code generators, analyzers) to correctly construct RSX components from prompts.
+This document defines the **runtime semantics of an RSX component**. It is intentionally descriptive and normative, not a tutorial. The goal is to allow automated systems (LLMs, code generators, analyzers) to correctly construct RSX components from prompts.
 
 ---
 
@@ -8,8 +8,10 @@ This document defines the **runtime semantics of an RSX component**. It is inten
 
 An RSX component is authored as a single exported function in a `.rsx` file.
 
+
 ```ts
-export default function Component(ctx, ref?) {
+// The ctx parameter must always be destructured:
+export default function Component({ view, update, destroy, render, props }, ref?) {
   // root scope
 }
 ```
@@ -18,14 +20,17 @@ export default function Component(ctx, ref?) {
 
 | Parameter | Required | Description                                            |
 | --------- | -------- | ------------------------------------------------------ |
-| `ctx`     | yes      | Lifecycle context object injected by the RSX compiler  |
+| `{ view, update, destroy, render, props }` | yes | Destructured lifecycle context object injected by the RSX compiler. **Must always be destructured.** |
 | `ref`     | no       | Optional forwarded React ref; passed through unchanged |
+
+> **Note:** Always destructure the `ctx` object in the parameter list. Do **not** use `ctx` as a single object parameter.
 
 The function signature is preserved to remain compatible with React's component calling convention.
 
 ---
 
 ## 2. Execution Model (Critical Invariant)
+
 
 ### **The RSX component body executes exactly once per mounted instance.**
 
@@ -56,29 +61,46 @@ have the following properties:
 - They are stored on an internal per-instance object
 - Reads and writes always resolve to the same instance-scoped storage
 
+
 There is no concept of re-initialization, re-render execution, or closure recreation.
 
 > **RSX variables behave like instance fields, not render-scoped locals.**
 
 ---
 
-## 4. The `ctx` Lifecycle Context
+## 4. The Lifecycle Context
 
-The RSX compiler injects a stable `ctx` object into the component. This object exposes lifecycle registration and control primitives.
+```ts
+export type Ctx<P = Record<string, unknown>> = {
+  props: P;
+  view: (cb: (props: P) => React.ReactNode) => void;
+  update: (cb: (prev: P, next: P) => void) => void;
+  render: () => void;
+  destroy: (cb: () => void) => void;
+};
+```
 
-### 4.1 `ctx.view(fn)`
+
+The RSX compiler injects a stable ctx object into the component. This object exposes lifecycle registration and control primitives.
+
+
+
+### 4.1 `view(fn)`
 
 Registers the view function.
 
 ```ts
-ctx.view((props) => JSX);
+  view((props) => <>hello world</>);
+
 ```
+
 
 **Semantics**
 
 - Stores `fn` as the component's view callback
 - The function is **never redefined or re-registered implicitly**
 - Must return JSX (or `null`)
+
 
 **Invocation**
 
@@ -87,19 +109,23 @@ ctx.view((props) => JSX);
 
 ---
 
-### 4.2 `ctx.update(fn)`
+### 4.2 `update(fn)`
+
 
 Registers a props update handler.
 
 ```ts
-ctx.update((prevProps, nextProps) => { ... })
+update((prevProps, nextProps) => { ... })
+
 ```
+
 
 **Semantics**
 
 - Invoked automatically when React props change
 - Runs **after mount**, never during initialization
 - Receives previous and next props by reference
+
 
 **Ordering**
 
@@ -110,11 +136,13 @@ ctx.update((prevProps, nextProps) => { ... })
 
 ### 4.3 `ctx.destroy(fn)`
 
+
 Registers a cleanup handler.
 
 ```ts
-ctx.destroy(() => { ... })
+destroy(() => { ... })
 ```
+
 
 **Semantics**
 
@@ -124,19 +152,22 @@ ctx.destroy(() => { ... })
 
 ---
 
-### 4.4 `ctx.render()`
+### 4.4 `render()`
+
 
 Explicitly schedules a render.
 
 ```ts
-ctx.render();
+render();
 ```
+
 
 **Semantics**
 
 - Forces execution of the registered `view` callback
 - Triggers a React re-render via an internal state tick
 - Safe to call from any event, timer, or external system
+
 
 **Important**
 
@@ -145,21 +176,24 @@ ctx.render();
 
 ---
 
-### 4.5 `ctx.props`
+### 4.5 `props`
+
 
 A getter that returns the current props snapshot.
 
 ```ts
-const initialProps = ctx.props;
+const initialProps = props;
 ```
+
 
 **Semantics**
 
-- On mount: reflects props passed during first render
-- After mount: updated automatically before `update()` is called
-- Read-only; mutation is illegal
 
-Values read from `ctx.props` in root scope are captured once and will not update unless explicitly reassigned in `update()`.
+- On mount: reflects props passed during the first render
+- After mount: updated automatically before `update()` is called
+- Read-only; do not mutate props
+
+Values read from `props` in the root scope are captured once and will not update unless explicitly reassigned in `update()`.
 
 ---
 
@@ -167,12 +201,9 @@ Values read from `ctx.props` in root scope are captured once and will not update
 
 For each mounted RSX component instance:
 
-1. Internal instance storage is created
-2. `ctx` object is constructed
-3. User component body executes **once**, receiving `ctx`
-4. Registered lifecycle callbacks are stored
-5. Initial `view()` is executed once
-6. JSX output is returned to React
+1. The user component body executes **once**, receiving lifecycle methods and props in the destructured ctx parameter
+2. The initial `view()` is executed once
+3. JSX output is returned to React
 
 At no point is the user body executed again.
 
@@ -194,7 +225,7 @@ On subsequent React renders:
 
 ## 7. Return Semantics
 
-- User `return` statements are ignored
+- User `return` statements in the main component body are ignored
 - The RSX runtime exclusively controls what is returned
 - The rendered value is the result of the most recent `view()` execution
 
@@ -202,9 +233,8 @@ If no view has produced output, `null` is returned.
 
 ---
 
-## 8. Hook Restrictions (Hard Rules)
 
-### **All hooks are banned in user-authored RSX code.**
+## 8. Hook Restrictions
 
 RSX components must not invoke:
 
@@ -214,7 +244,9 @@ RSX components must not invoke:
 
 Formally:
 
-> **Any function whose name matches `/^use[A-Z]/` is prohibited inside `.rsx` files.**
+> **Any function whose name matches `/^use[A-Z]/` must not be used inside `.rsx` files and will throw an error if you use the RSX eslint plugin.**
+
+See: https://github.com/LMS007/eslint-plugin-rsx
 
 This includes, but is not limited to:
 
@@ -225,13 +257,13 @@ This includes, but is not limited to:
 - `useContext`
 - `useMyProvider`
 
-Violations are compile-time errors.
-
 ### Rationale
+
 
 - RSX user code executes once per instance
 - Hooks assume repeated render-phase execution
 - Dependency arrays, memoization, and effect scheduling have no semantic meaning in RSX
+
 
 RSX replaces hook functionality with explicit lifecycle primitives:
 
@@ -243,8 +275,6 @@ RSX replaces hook functionality with explicit lifecycle primitives:
 | `useEffect cleanup` | `destroy()`                       |
 | `useMemo`           | explicit caching / update logic   |
 | `useCallback`       | stable functions by default       |
-
-> **Compiler-injected hooks are permitted; user-authored hooks are not.**
 
 ---
 
@@ -291,6 +321,7 @@ interface RSXStore<T> {
 - No stale captures
 - Ideal for real-time, external, or persistent data
 
+
 This is the **preferred architecture** for RSX interoperability.
 
 ---
@@ -319,20 +350,17 @@ RSX Component (props)
 - Refactoring state ownership is not feasible
 - State is local to a React subtree
 
+
 This pattern is valid but less autonomous than an upstream store.
 
 ---
 
 ## 10. Mental Model Summary (For AI Systems)
 
+
 - RSX components are **stateful instances**, not render functions
-- Root scope executes once and persists
+- The root scope executes once and persists
 - Hooks are forbidden
 - React provides rendering and reconciliation only
 - RSX reacts explicitly to changes via `update()` and subscriptions
 
-**Think: constructor + instance fields + explicit invalidation.**
-
----
-
-**End of Specification**
