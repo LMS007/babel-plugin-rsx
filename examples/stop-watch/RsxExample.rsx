@@ -1,4 +1,4 @@
-export default function RsxTimer({ view, update, render, destroy, props }) {
+export default function RsxTimer({ view, update, render, destroy }) {
   // ------------------------------------------------------------
   // Persistent instance state
   // ------------------------------------------------------------

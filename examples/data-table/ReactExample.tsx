@@ -1,8 +1,16 @@
-import React, { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
+
+type Row = {
+  id: number;
+  name: string;
+  email: string;
+  age: number;
+  score: number;
+};
 
 // ---- mock data generation ----
 function generateData(count = 10_000) {
-  const rows = [];
+  const rows: Row[] = [];
   for (let i = 0; i < count; i++) {
     rows.push({
       id: i,
@@ -20,11 +28,11 @@ const DATA = generateData();
 // ---- DataTable component ----
 export default function DataTableDemo() {
   const [filter, setFilter] = useState("");
-  const [sortKey, setSortKey] = useState("id");
+  const [sortKey, setSortKey] = useState<keyof Row>("id");
   const [sortDir, setSortDir] = useState("asc");
   const [page, setPage] = useState(0);
   const [pageSize] = useState(100);
-  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [selectedIds, setSelectedIds] = useState(() => new Set<number>());
 
   // ---- filtering ----
   const filtered = useMemo(() => {
@@ -64,7 +72,7 @@ export default function DataTableDemo() {
   }, [filter, sortKey, sortDir, page]);
 
   // ---- handlers ----
-  const toggleSort = key => {
+  const toggleSort = (key: keyof Row) => {
     if (sortKey === key) {
       setSortDir(d => (d === "asc" ? "desc" : "asc"));
     } else {
@@ -73,7 +81,7 @@ export default function DataTableDemo() {
     }
   };
 
-  const toggleRow = id => {
+  const toggleRow = (id: number) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
