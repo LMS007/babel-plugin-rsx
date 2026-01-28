@@ -46,7 +46,7 @@ export default function DataTableRSX({ view, render }) {
       filtered = DATA;
     }
 
-    sorted = [...filtered].sort((a, b) => {
+    sorted = filtered.sort((a, b) => {
       const v1 = a[sortKey];
       const v2 = b[sortKey];
       if (v1 < v2) return sortDir === "asc" ? -1 : 1;
