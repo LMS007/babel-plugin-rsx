@@ -75,6 +75,41 @@ describe("babel-plugin-rsx", () => {
       }`;
       expect(() => transform(input)).not.toThrow();
     });
+
+    it("rewrites variables inside nested callbacks (view, update, etc.)", () => {
+      const input = `export default function App({ view, update, render }) {
+        let count = 0;
+        let name = "test";
+        
+        view((props) => {
+          // Variables referenced inside view callback should be rewritten
+          return <div>{count} - {name}</div>;
+        });
+        
+        update((prev, next) => {
+          // Variables referenced inside update callback should be rewritten
+          count = 0;
+          name = "reset";
+        });
+        
+        function handleClick() {
+          // Variables referenced inside nested functions should be rewritten
+          count++;
+          render();
+        }
+      }`;
+      const output = transform(input);
+      // Variables inside callbacks should be rewritten to __instance.x
+      expect(output).toContain("__instance.count");
+      expect(output).toContain("__instance.name");
+      // The JSX should reference __instance.count, not bare count
+      expect(output).toMatch(/__instance\.count.*__instance\.name/);
+      // Assignments inside update should be __instance.x = 
+      expect(output).toContain("__instance.count = 0");
+      expect(output).toContain('__instance.name = "reset"');
+      // Increment inside handleClick should be __instance.count++
+      expect(output).toContain("__instance.count++");
+    });
   });
 
   /*describe("hook banning", () => {
@@ -241,6 +276,134 @@ describe("babel-plugin-rsx", () => {
         ));
       }`;
       expect(() => transform(input)).not.toThrow();
+    });
+
+    it("does not transform lowercase file-scope functions", () => {
+      const input = `
+        function helperFunction(x) {
+          return x * 2;
+        }
+
+        function anotherHelper() {
+          console.log("helper");
+        }
+
+        export default function App({ view }) {
+          view(() => <div>{helperFunction(5)}</div>);
+        }
+      `;
+      const output = transform(input);
+      // The lowercase functions should remain untouched
+      expect(output).toContain("function helperFunction(x)");
+      expect(output).toContain("return x * 2");
+      expect(output).toContain("function anotherHelper()");
+      // They should NOT have RSX runtime injected
+      expect(output).not.toMatch(/function helperFunction\([^)]*\)\s*\{[^}]*__instance/);
+      expect(output).not.toMatch(/function anotherHelper\(\)\s*\{[^}]*__instance/);
+      // But App should be transformed
+      expect(output).toContain("__instanceRef");
+    });
+  });
+
+  describe("multi-component support", () => {
+    it("transforms multiple components in a single file", () => {
+      const input = `
+        function Header({ view }) {
+          let title = "Hello";
+          view(() => <header>{title}</header>);
+        }
+
+        function Footer({ view }) {
+          let year = 2026;
+          view(() => <footer>{year}</footer>);
+        }
+
+        export { Header, Footer };
+      `;
+      const output = transform(input);
+      // Both components should be transformed
+      expect(output).toContain("__instance");
+      // Should have two separate __instanceRef declarations (one per component)
+      const instanceRefMatches = output.match(/__instanceRef/g);
+      expect(instanceRefMatches?.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("transforms exported and non-exported uppercase components", () => {
+      const input = `
+        function PrivateComponent({ view }) {
+          let hidden = true;
+          view(() => <div>{hidden ? "hidden" : "visible"}</div>);
+        }
+
+        export function PublicComponent({ view }) {
+          let visible = false;
+          view(() => <div><PrivateComponent /></div>);
+        }
+      `;
+      const output = transform(input);
+      expect(output).toContain("__instance");
+      // Both should be transformed
+      const instanceRefMatches = output.match(/__instanceRef/g);
+      expect(instanceRefMatches?.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("ignores lowercase helper functions", () => {
+      const input = `
+        function formatDate(date) {
+          return date.toISOString();
+        }
+
+        function Calendar({ view }) {
+          let date = new Date();
+          view(() => <div>{formatDate(date)}</div>);
+        }
+
+        export { Calendar };
+      `;
+      const output = transform(input);
+      // Only Calendar should be transformed, not formatDate
+      // formatDate should remain a normal function
+      expect(output).toContain("function formatDate(date)");
+      // Calendar should be transformed
+      expect(output).toContain("__instance");
+    });
+
+    it("keeps instance variables separate between components", () => {
+      const input = `
+        function Counter({ view }) {
+          let count = 0;
+          view(() => <div>{count}</div>);
+        }
+
+        function Timer({ view }) {
+          let seconds = 0;
+          view(() => <div>{seconds}</div>);
+        }
+
+        export { Counter, Timer };
+      `;
+      const output = transform(input);
+      // Both components should have their own __instance with their own variables
+      expect(output).toContain("count:");
+      expect(output).toContain("seconds:");
+    });
+
+    it("handles export default with named components", () => {
+      const input = `
+        function Header({ view }) {
+          let text = "header";
+          view(() => <h1>{text}</h1>);
+        }
+
+        export default function App({ view }) {
+          let count = 0;
+          view(() => <div><Header />{count}</div>);
+        }
+      `;
+      const output = transform(input);
+      // Both should be transformed
+      const instanceRefMatches = output.match(/__instanceRef/g);
+      expect(instanceRefMatches?.length).toBeGreaterThanOrEqual(2);
     });
   });
 });

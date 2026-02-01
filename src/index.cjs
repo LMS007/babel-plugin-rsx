@@ -2,12 +2,15 @@
 // Orchestrates analysis, validation, and transformation phases
 
 const isInternal = require("./utils/isInternal.cjs");
-const isInstanceField = require("./utils/isInstanceField.cjs");
 const ensureNamedImport = require("./utils/ensureNamedImport.cjs");
 
 const {
   collectBannedHooks,
   identifyComponent,
+  isRSXComponent,
+  registerComponent,
+  getComponentData,
+  findContainingComponent,
   captureInstanceVar
 } = require("./analyzeComponents.cjs");
 
@@ -41,8 +44,10 @@ module.exports = function ({ types: t }) {
 
           console.log("[RSX] Transforming", filename);
 
-          // Prepare storage for this file
+          // Prepare storage for this file - now supports multiple components
           state.rsx = {
+            components: new Map(),  // fnNode -> { name, path, instanceVars }
+            // Legacy fields for backward compatibility during transition
             instanceVars: new Map(),
             componentPath: null,
           };
@@ -54,18 +59,41 @@ module.exports = function ({ types: t }) {
         },
       },
 
-      FunctionDeclaration(path, state) {
-        transformComponentFunction(path, state, t);
+      FunctionDeclaration: {
+        enter(path, state) {
+          if (!state.rsx || state.skipRSX) return;
+          
+          // Check if this is an RSX component (name starts with uppercase)
+          if (isRSXComponent(path, t)) {
+            // Register the component early so VariableDeclarator can find it
+            registerComponent(path, state);
+            
+            // Legacy: also set componentPath for backward compatibility
+            state.rsx.componentPath = path;
+          }
+        },
+        
+        exit(path, state) {
+          if (!state.rsx || state.skipRSX) return;
+          
+          // Transform happens on exit, after all child nodes (variables) are visited
+          transformComponentFunction(path, state, t);
+        }
       },
 
       ExportDefaultDeclaration(path, state) {
         if (!state.rsx || state.skipRSX) return;
 
-        // Analysis: identify the component
-        const decl = identifyComponent(path, state, t);
+        // For export default function declarations, they're already registered
+        // in FunctionDeclaration visitor if they have uppercase names.
+        // This handles validation for the exported component.
+        const decl = path.get("declaration");
 
-        // Validation: check params
-        if (decl) {
+        if (
+          decl.isFunctionDeclaration() ||
+          decl.isFunctionExpression() ||
+          decl.isArrowFunctionExpression()
+        ) {
           const params = decl.node.params;
           const filename = state.filename || "unknown";
           validateComponentParams(params, filename, t);
@@ -75,11 +103,14 @@ module.exports = function ({ types: t }) {
       VariableDeclarator(path, state) {
         if (!state.rsx || state.skipRSX) return;
 
-        // Analysis: capture instance var
+        // Analysis: capture instance var (now returns component reference)
         const captured = captureInstanceVar(path, state, t, isInternal);
         if (!captured) return;
 
-        // Store the captured var
+        // Store the captured var in the component's instanceVars
+        captured.component.instanceVars.set(captured.id.name, captured.init);
+        
+        // Legacy: also store in global instanceVars for backward compatibility
         state.rsx.instanceVars.set(captured.id.name, captured.init);
 
         // Transform: remove the declaration
@@ -97,7 +128,13 @@ module.exports = function ({ types: t }) {
         // From this point on, we only care about assignments to
         // RSX instance variables (persistent component state).
         if (!t.isIdentifier(left)) return;
-        if (!isInstanceField(left.name, state)) return;
+        
+        // Find which component we're in
+        const component = findContainingComponent(path, state);
+        if (!component) return;
+        
+        // Check if this is an instance field for this component
+        if (!component.instanceVars.has(left.name)) return;
 
         // Validation: warn about props in root scope
         warnPropsInRootScope(path, state, t);
@@ -132,8 +169,12 @@ module.exports = function ({ types: t }) {
           return;
         }
 
-        // Only rewrite captured instance vars
-        if (!state.rsx.instanceVars.has(name)) return;
+        // Find which component we're in
+        const component = findContainingComponent(path, state);
+        if (!component) return;
+
+        // Only rewrite captured instance vars for this component
+        if (!component.instanceVars.has(name)) return;
 
         // Do not rewrite property keys: __instance.foo
         if (path.parentPath.isMemberExpression() && path.parentKey === "property") {

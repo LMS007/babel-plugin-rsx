@@ -13,12 +13,12 @@ const {
 } = require("./rsxRuntime.cjs");
 
 /**
- * Builds and injects the runtime code into the component body during Program.exit.
+ * Injects runtime code for a single component.
+ * @param {Object} componentData - { name, path, instanceVars }
+ * @param {Object} t - Babel types
  */
-function injectRuntimeCode(state, t) {
-  if (!state.rsx || !state.rsx.componentPath) return;
-
-  const vars = [...state.rsx.instanceVars.entries()];
+function injectRuntimeCodeForComponent(componentData, t) {
+  const vars = [...componentData.instanceVars.entries()];
 
   // Build the per-instance storage object
   const initProps = vars.map(([name, init]) =>
@@ -30,7 +30,7 @@ function injectRuntimeCode(state, t) {
 
   const initObject = t.objectExpression(initProps);
 
-  const body = state.rsx.componentPath.get("body");
+  const body = componentData.path.get("body");
 
   // Create the injected useState call *as a standalone node*
   const injectedUseStateCall = t.callExpression(t.identifier("useState"), [
@@ -142,11 +142,29 @@ function injectRuntimeCode(state, t) {
 }
 
 /**
- * Transforms the FunctionDeclaration for the RSX component.
+ * Builds and injects the runtime code into all component bodies during Program.exit.
+ * Now iterates over all registered components.
+ */
+function injectRuntimeCode(state, t) {
+  if (!state.rsx) return;
+  
+  // Iterate over all registered components
+  for (const [fnNode, componentData] of state.rsx.components) {
+    injectRuntimeCodeForComponent(componentData, t);
+  }
+}
+
+/**
+ * Transforms the FunctionDeclaration for an RSX component.
+ * Now checks against all registered components, not just a single componentPath.
  */
 function transformComponentFunction(path, state, t) {
   if (!state.rsx || state.skipRSX) return;
-  if (path.node !== state.rsx.componentPath?.node) return;
+  
+  // Check if this function is a registered RSX component
+  const componentData = state.rsx.components.get(path.node);
+  if (!componentData) return;
+  
   if (!t.isBlockStatement(path.node.body)) return;
 
   // Keep original function signature for React compatibility
