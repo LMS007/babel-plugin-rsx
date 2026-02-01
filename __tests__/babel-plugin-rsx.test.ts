@@ -110,6 +110,30 @@ describe("babel-plugin-rsx", () => {
       // Increment inside handleClick should be __instance.count++
       expect(output).toContain("__instance.count++");
     });
+
+    it("rewrites variables used as computed property keys in deeply nested callbacks", () => {
+      const input = `export default function DataTable({ view, render }) {
+        let sortKey = "id";
+        let data = [];
+        
+        function recompute() {
+          data = [].sort((a, b) => {
+            const v1 = a[sortKey];
+            const v2 = b[sortKey];
+            return v1 < v2 ? -1 : 1;
+          });
+        }
+        
+        view(() => {
+          recompute();
+          return <div>{sortKey}</div>;
+        });
+      }`;
+      const output = transform(input);
+      // sortKey should be rewritten to __instance.sortKey in computed property access
+      expect(output).toContain("a[__instance.sortKey]");
+      expect(output).toContain("b[__instance.sortKey]");
+    });
   });
 
   /*describe("hook banning", () => {

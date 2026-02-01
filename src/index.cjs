@@ -176,8 +176,9 @@ module.exports = function ({ types: t }) {
         // Only rewrite captured instance vars for this component
         if (!component.instanceVars.has(name)) return;
 
-        // Do not rewrite property keys: __instance.foo
-        if (path.parentPath.isMemberExpression() && path.parentKey === "property") {
+        // Do not rewrite non-computed property keys: __instance.foo
+        // But DO rewrite computed property keys: a[sortKey] -> a[__instance.sortKey]
+        if (path.parentPath.isMemberExpression() && path.parentKey === "property" && !path.parent.computed) {
           return;
         }
 
