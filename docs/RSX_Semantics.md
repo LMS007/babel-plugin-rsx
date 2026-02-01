@@ -29,7 +29,70 @@ The function signature is preserved to remain compatible with React's component 
 
 ---
 
-## 2. Execution Model (Critical Invariant)
+## 2. Function Naming & Component Detection
+
+RSX uses **function name casing** to determine what gets transformed:
+
+### Uppercase = RSX Component
+
+Any function in a `.rsx` file whose name starts with an **uppercase letter** (A-Z) is treated as an RSX component and receives the full transformation:
+
+```ts
+// ✅ Transformed as RSX components
+function Counter({ view, render }) { ... }
+function DataTable({ view, update }) { ... }
+export default function App({ view }) { ... }
+```
+
+### Lowercase = Helper Function
+
+Functions starting with a **lowercase letter** are left untouched. They remain regular JavaScript functions:
+
+```ts
+// ❌ NOT transformed - regular helper functions
+function formatDate(date) { return date.toISOString(); }
+function calculateTotal(items) { return items.reduce(...); }
+```
+
+### Multi-Component Files
+
+A single `.rsx` file can contain **multiple RSX components**:
+
+```ts
+// Badge.rsx - contains multiple components
+
+function Badge({ view }) {
+  view((props) => <span className="badge">{props.label}</span>);
+}
+
+function Card({ view }) {
+  view((props) => (
+    <div className="card">
+      <Badge label={props.tag} />
+      {props.children}
+    </div>
+  ));
+}
+
+export default function CardList({ view }) {
+  view((props) => (
+    <div>
+      {props.items.map(item => <Card key={item.id} {...item} />)}
+    </div>
+  ));
+}
+```
+
+Each uppercase function:
+- Gets its own instance variable storage
+- Has independent lifecycle callbacks
+- Is transformed separately
+
+Helper functions (lowercase) can be shared across all components in the file.
+
+---
+
+## 3. Execution Model (Critical Invariant)
 
 
 ### **The RSX component body executes exactly once per mounted instance.**
@@ -42,7 +105,7 @@ React may invoke the outer component function multiple times, but RSX guarantees
 
 ---
 
-## 3. Instance Lifetime & Persistence
+## 4. Instance Lifetime & Persistence
 
 ### Root-Scope Persistence
 
@@ -68,7 +131,7 @@ There is no concept of re-initialization, re-render execution, or closure recrea
 
 ---
 
-## 4. The Lifecycle Context
+## 5. The Lifecycle Context
 
 ```ts
 export type Ctx<P = Record<string, unknown>> = {
@@ -85,7 +148,7 @@ The RSX compiler injects a stable ctx object into the component. This object exp
 
 
 
-### 4.1 `view(fn)`
+### 5.1 `view(fn)`
 
 Registers the view function.
 
@@ -109,7 +172,7 @@ Registers the view function.
 
 ---
 
-### 4.2 `update(fn)`
+### 5.2 `update(fn)`
 
 
 Registers a props update handler.
@@ -134,7 +197,7 @@ update((prevProps, nextProps) => { ... })
 
 ---
 
-### 4.3 `ctx.destroy(fn)`
+### 5.3 `destroy(fn)`
 
 
 Registers a cleanup handler.
@@ -152,7 +215,7 @@ destroy(() => { ... })
 
 ---
 
-### 4.4 `render()`
+### 5.4 `render()`
 
 
 Explicitly schedules a render.
@@ -176,7 +239,7 @@ render();
 
 ---
 
-### 4.5 `props`
+### 5.5 `props`
 
 
 A getter that returns the current props snapshot.
@@ -197,7 +260,7 @@ Values read from `props` in the root scope are captured once and will not update
 
 ---
 
-## 5. Initialization Sequence (Exact Order)
+## 6. Initialization Sequence (Exact Order)
 
 For each mounted RSX component instance:
 
@@ -209,7 +272,7 @@ At no point is the user body executed again.
 
 ---
 
-## 6. Update Sequence
+## 7. Update Sequence
 
 On subsequent React renders:
 
@@ -223,7 +286,7 @@ On subsequent React renders:
 
 ---
 
-## 7. Return Semantics
+## 8. Return Semantics
 
 - User `return` statements in the main component body are ignored
 - The RSX runtime exclusively controls what is returned
@@ -234,7 +297,7 @@ If no view has produced output, `null` is returned.
 ---
 
 
-## 8. Hook Restrictions
+## 9. Hook Restrictions
 
 RSX components must not invoke:
 
@@ -278,13 +341,13 @@ RSX replaces hook functionality with explicit lifecycle primitives:
 
 ---
 
-## 9. Integrating RSX with Providers and Shared State
+## 10. Integrating RSX with Providers and Shared State
 
 RSX does not call providers or hooks directly. Instead, it integrates with shared state using one of two explicit patterns.
 
 ---
 
-### 9.1 Pattern A (Recommended): Upstream Store / Dual Adapter
+### 10.1 Pattern A (Recommended): Upstream Store / Dual Adapter
 
 **Move the source of truth upstream of React.**
 
@@ -326,7 +389,7 @@ This is the **preferred architecture** for RSX interoperability.
 
 ---
 
-### 9.2 Pattern B (Compatibility): Proxy Through Parent React Component
+### 10.2 Pattern B (Compatibility): Proxy Through Parent React Component
 
 **Let React own the state and pass snapshots into RSX via props.**
 
@@ -355,7 +418,7 @@ This pattern is valid but less autonomous than an upstream store.
 
 ---
 
-## 10. Mental Model Summary (For AI Systems)
+## 11. Mental Model Summary (For AI Systems)
 
 
 - RSX components are **stateful instances**, not render functions

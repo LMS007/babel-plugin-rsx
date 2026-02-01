@@ -165,6 +165,8 @@ https://github.com/LMS007/eslint-plugin-rsx
 
 ### 4. [Optional] - Add TypeScript Support
 
+> ⚠️ **Note:** TypeScript support for `.rsx` files is still a work in progress. The types below are available but IDE integration may be limited.
+
 Add the RSX types to your `tsconfig.json`:
 
 ```jsonc
