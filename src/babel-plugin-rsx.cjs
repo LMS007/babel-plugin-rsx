@@ -1,3 +1,6 @@
+/**
+ * deprecated babel plugin for RSX files
+ */
 const yellow = "\x1b[33m";
 const dim = "\x1b[2m";
 const reset = "\x1b[0m";

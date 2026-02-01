@@ -1,7 +1,7 @@
 import { transformSync } from "@babel/core";
 import { describe, expect, it } from "vitest";
 //import { vi } from "vitest";
-import rsxVitePlugin from "../src/babel-plugin-rsx.cjs";
+import rsxVitePlugin from "../src/index.cjs";
 
 function transform(code: string, filename = "test.rsx") {
   const result = transformSync(code, {

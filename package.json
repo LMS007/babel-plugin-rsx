@@ -4,7 +4,7 @@
   "private": false,
   "description": "Babel plugin for RSX Components",
   "type": "module",
-  "main": "./src/babel-plugin-rsx.cjs",
+  "main": "./src/index.cjs",
   "types": "./src/custom.d.ts",
   "repository": {
     "type": "git",
@@ -12,7 +12,7 @@
   },
   "exports": {
     ".": {
-      "require": "./src/babel-plugin-rsx.cjs",
+      "require": "./src/index.cjs",
       "types": "./src/custom.d.ts"
     },
     "./vite": {

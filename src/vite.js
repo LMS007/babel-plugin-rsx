@@ -1,6 +1,6 @@
 import { transformSync } from "@babel/core";
 import { createFilter } from "@rollup/pluginutils";
-import rsxBabelPlugin from "./babel-plugin-rsx.cjs";
+import rsxBabelPlugin from "./index.cjs";
 
 export function rsxVitePlugin(options = {}) {
   const filter = createFilter(options.include || /\.rsx$/, options.exclude);
