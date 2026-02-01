@@ -605,10 +605,10 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@lms5400/eslint-plugin-rsx@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@lms5400/eslint-plugin-rsx/-/eslint-plugin-rsx-1.0.0.tgz#ee2ab31d64abba44c524721a40b4198ce2837301"
-  integrity sha512-N12QzrvTv9HBAZVGkUNYVEY4Yjf97MVMPCLI+WkhkbM6xLBPEDuPma6B81OXRO606bDhrjpzCKdEAhaCoSkoYA==
+"@lms5400/eslint-plugin-rsx@^1.0.1":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@lms5400/eslint-plugin-rsx/-/eslint-plugin-rsx-1.0.1.tgz#659b5b58247993d576400bfe3db2e6580f667bd7"
+  integrity sha512-vcFED0BIvjRDZv8rLFODlAj+k9EA9QcwAYGNaaYv/Ui+WgnG0DmYW+9zs8qigJvpfywWQjSx2ksagrRObAtNew==
 
 "@rolldown/pluginutils@1.0.0-beta.53":
   version "1.0.0-beta.53"

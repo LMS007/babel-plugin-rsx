@@ -60,9 +60,7 @@ export default [
     },
     rules: {
       ...js.configs.recommended.rules,
-      "rsx/no-react-hooks": "error",
-      "rsx/no-use-ref": "warn",
-      "rsx/require-ctx-destructure": "error",
+      ...rsx.configs.recommended.rules,
     },
   },
   eslintConfigPrettier,
