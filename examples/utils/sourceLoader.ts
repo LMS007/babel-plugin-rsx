@@ -4,6 +4,8 @@ import rsxTimerSource from "../stop-watch/RsxExample.rsx?raw";
 import reactTimerSource from "../stop-watch/ReactExample.tsx?raw";
 import rsxDataTableSource from "../data-table/RsxExample.rsx?raw";
 import reactDataTableSource from "../data-table/ReactExample.tsx?raw";
+import rsxMultiComponentSource from "../multi-component/RsxExample.rsx?raw";
+import reactMultiComponentSource from "../multi-component/ReactExample.tsx?raw";
 
 export const SOURCE_CODE: Record<string, { rsx: string; react: string }> = {
   "stop-watch": {
@@ -13,6 +15,10 @@ export const SOURCE_CODE: Record<string, { rsx: string; react: string }> = {
   "data-table": {
     rsx: rsxDataTableSource,
     react: reactDataTableSource,
+  },
+  "multi-component": {
+    rsx: rsxMultiComponentSource,
+    react: reactMultiComponentSource,
   },
 };
 

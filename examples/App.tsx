@@ -16,6 +16,9 @@ import RsxTimer from "./stop-watch/RsxExample.rsx";
 import ReactDataTable from "./data-table/ReactExample.tsx";
 import RsxDataTable from "./data-table/RsxExample.rsx";
 
+import ReactMultiComponent from "./multi-component/ReactExample.tsx";
+import RsxMultiComponent from "./multi-component/RsxExample.rsx";
+
 type Example = {
   id: string;
   name: string;
@@ -47,6 +50,13 @@ const EXAMPLES: Example[] = [
     description: "Compare React and RSX data table implementations.",
     Rsx: RsxDataTable,
     React: ReactDataTable,
+  },
+  {
+    id: "multi-component",
+    name: "Multi-Component",
+    description: "Multiple RSX components in a single file.",
+    Rsx: RsxMultiComponent,
+    React: ReactMultiComponent,
   },
 ];
 
