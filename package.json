@@ -1,6 +1,6 @@
 {
   "name": "@lms5400/babel-plugin-rsx",
-  "version": "1.0.7",
+  "version": "1.1.0",
   "private": false,
   "description": "Babel plugin for RSX Components",
   "type": "module",
@@ -45,7 +45,7 @@
     "@babel/core": "^7.28.6",
     "@babel/preset-react": "^7.28.5",
     "@eslint/js": "^9.39.2",
-    "@lms5400/eslint-plugin-rsx": "^1.0.1",
+    "@lms5400/eslint-plugin-rsx": "^1.0.2",
     "@rollup/pluginutils": "^5.3.0",
     "@types/node": "^24.10.9",
     "@types/react": "^19.2.9",
