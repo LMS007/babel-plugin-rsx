@@ -31,8 +31,6 @@ function Badge({ view }) {
 
 // Card component that uses Badge
 function Card({ view }) {
-  let bar = 4;
-  
   view((props) => (
     <div
       style={{
