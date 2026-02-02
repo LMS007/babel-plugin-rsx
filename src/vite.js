@@ -9,6 +9,15 @@ export function rsxVitePlugin(options = {}) {
     name: "vite-plugin-rsx",
     enforce: "pre",
 
+    // Configure HMR to do full reload for RSX files
+    handleHotUpdate({ file, server }) {
+      if (filter(file)) {
+        // RSX components need full reload because their body only runs once on mount
+        server.ws.send({ type: 'full-reload' });
+        return [];
+      }
+    },
+
     transform(code, id) {
       if (!filter(id)) return null;
 

@@ -54,7 +54,7 @@ function Card({
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-        <h4 style={{ margin: 0 }}>{formatLabel(title)}</h4>
+        <h4 style={{ color: "#555", margin: 0 }}>{formatLabel(title)}</h4>
         {badge && <Badge color={badgeColor}>{badge}</Badge>}
       </div>
       <p style={{ margin: 0, color: "#666" }}>{children}</p>

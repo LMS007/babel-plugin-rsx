@@ -43,7 +43,7 @@ function Card({ view }) {
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-        <h4 style={{ margin: 0 }}>{formatLabel(props.title)}</h4>
+        <h4 style={{ margin: 0, color: "#555" }}>{formatLabel(props.title)}</h4>
         {props.badge && <Badge color={props.badgeColor}>{props.badge}</Badge>}
       </div>
       <p style={{ margin: 0, color: "#666" }}>{props.children}</p>
