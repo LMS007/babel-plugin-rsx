@@ -200,6 +200,149 @@ describe("babel-plugin-rsx", () => {
       }`;
       expect(() => transform(input)).not.toThrow();
     });
+
+    it("defers initialization when instance var references props destructuring", () => {
+      const input = `export default function App({ view, props }) {
+        let { onBrightnessChange } = props;
+        let currentCallback = onBrightnessChange;
+        view(() => <div />);
+      }`;
+      const output = transform(input);
+      // currentCallback should be initialized to undefined in __instanceRef.current
+      // because its initializer references onBrightnessChange from props destructuring
+      expect(output).toContain("currentCallback: undefined");
+      // The deferred assignment should be in __userInit
+      expect(output).toContain("__instance.currentCallback = onBrightnessChange");
+    });
+
+    it("defers initialization when instance var references another instance var", () => {
+      const input = `export default function App({ view }) {
+        let baseValue = 10;
+        let derivedValue = baseValue * 2;
+        view(() => <div>{derivedValue}</div>);
+      }`;
+      const output = transform(input);
+      // derivedValue should be initialized to undefined because it references baseValue
+      expect(output).toContain("derivedValue: undefined");
+      // The deferred assignment should be in __userInit
+      expect(output).toContain("__instance.derivedValue = __instance.baseValue * 2");
+    });
+
+    it("uses immediate initialization for instance vars with literal values", () => {
+      const input = `export default function App({ view }) {
+        let count = 42;
+        let name = "test";
+        view(() => <div>{count} {name}</div>);
+      }`;
+      const output = transform(input);
+      // These should be initialized immediately, not deferred
+      expect(output).toContain("count: 42");
+      expect(output).toContain('name: "test"');
+    });
+
+    it("defers initialization when instance var contains object with local reference", () => {
+      const input = `export default function App({ view, props }) {
+        let { callback } = props;
+        let config = { handler: callback, value: 10 };
+        view(() => <div />);
+      }`;
+      const output = transform(input);
+      // config should be deferred because it references callback from props
+      expect(output).toContain("config: undefined");
+      expect(output).toContain("__instance.config = {");
+    });
+
+    it("defers initialization when instance var is arrow function capturing locals", () => {
+      const input = `export default function App({ view, props }) {
+        let { multiplier } = props;
+        let compute = (x) => x * multiplier;
+        view(() => <div>{compute(5)}</div>);
+      }`;
+      const output = transform(input);
+      // compute should be deferred because the arrow function captures multiplier
+      expect(output).toContain("compute: undefined");
+      expect(output).toContain("__instance.compute = x => x * multiplier");
+    });
+
+    it("defers initialization with template literal referencing locals", () => {
+      const input = `export default function App({ view }) {
+        let count = 0;
+        let message = \`Count is: \${count}\`;
+        view(() => <div>{message}</div>);
+      }`;
+      const output = transform(input);
+      // message should be deferred because template literal references count
+      expect(output).toContain("message: undefined");
+      expect(output).toContain("__instance.message = `Count is: ${__instance.count}`");
+    });
+
+    it("handles chained local references - all deferred", () => {
+      const input = `export default function App({ view, props }) {
+        let { value } = props;
+        let a = value;
+        let b = a;
+        let c = b;
+        view(() => <div>{c}</div>);
+      }`;
+      const output = transform(input);
+      // All should be deferred due to chain of local references
+      expect(output).toContain("a: undefined");
+      expect(output).toContain("b: undefined");
+      expect(output).toContain("c: undefined");
+    });
+
+    it("does NOT defer initialization for external imports", () => {
+      const input = `
+        import { someHelper } from './utils';
+        export default function App({ view }) {
+          let helper = someHelper;
+          let count = 0;
+          view(() => <div>{helper(count)}</div>);
+        }`;
+      const output = transform(input);
+      // helper should be initialized immediately since someHelper is an import, not a local
+      expect(output).toContain("helper: someHelper");
+      // count is a literal, also immediate
+      expect(output).toContain("count: 0");
+    });
+
+    it("does NOT defer initialization for global/built-in references", () => {
+      const input = `export default function App({ view }) {
+        let pi = Math.PI;
+        let log = console.log;
+        let arr = Array.from([1, 2, 3]);
+        view(() => <div>{pi}</div>);
+      }`;
+      const output = transform(input);
+      // These reference globals, not locals, so should be immediate
+      expect(output).toContain("pi: Math.PI");
+      expect(output).toContain("log: console.log");
+      expect(output).toContain("arr: Array.from");
+    });
+
+    it("handles nested object destructuring from props", () => {
+      const input = `export default function App({ view, props }) {
+        let { config: { theme, size } } = props;
+        let currentTheme = theme;
+        view(() => <div className={currentTheme}>{size}</div>);
+      }`;
+      const output = transform(input);
+      // currentTheme should be deferred because theme comes from nested destructuring
+      expect(output).toContain("currentTheme: undefined");
+      expect(output).toContain("__instance.currentTheme = theme");
+    });
+
+    it("handles array destructuring from props", () => {
+      const input = `export default function App({ view, props }) {
+        let [first, second] = props.items;
+        let selected = first;
+        view(() => <div>{selected}</div>);
+      }`;
+      const output = transform(input);
+      // selected should be deferred because first comes from array destructuring
+      expect(output).toContain("selected: undefined");
+      expect(output).toContain("__instance.selected = first");
+    });
   });
 
   describe("lifecycle methods", () => {

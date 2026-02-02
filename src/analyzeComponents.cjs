@@ -71,19 +71,83 @@ function isRSXComponent(path, t) {
 
 /**
  * Registers a component in the state.rsx.components Map.
- * Each component gets its own instanceVars Map.
+ * Each component gets its own instanceVars Map and localBindings set.
+ * Also collects all local bindings (variable names) from the component body.
  * @param {Object} path - Babel path to the FunctionDeclaration
  * @param {Object} state - Babel plugin state
+ * @param {Object} t - Babel types
  */
-function registerComponent(path, state) {
+function registerComponent(path, state, t) {
   const name = path.node.id.name;
   
   if (!state.rsx.components.has(path.node)) {
+    // Collect all local bindings in the component body
+    const localBindings = collectLocalBindings(path, t);
+    
     state.rsx.components.set(path.node, {
       name: name,
       path: path,
-      instanceVars: new Map()
+      instanceVars: new Map(),
+      localBindings: localBindings
     });
+  }
+}
+
+/**
+ * Collects all variable names that are bound in the component body.
+ * This includes variable declarations (let, const, var) and their destructured names.
+ * Only collects top-level bindings in the function body, not nested scopes.
+ * @param {Object} path - Babel path to the FunctionDeclaration
+ * @param {Object} t - Babel types
+ * @returns {Set<string>} Set of locally bound variable names
+ */
+function collectLocalBindings(path, t) {
+  const bindings = new Set();
+  
+  if (!t.isBlockStatement(path.node.body)) return bindings;
+  
+  for (const stmt of path.node.body.body) {
+    if (t.isVariableDeclaration(stmt)) {
+      for (const decl of stmt.declarations) {
+        collectBindingNames(decl.id, bindings, t);
+      }
+    }
+  }
+  
+  return bindings;
+}
+
+/**
+ * Recursively collects binding names from a pattern (identifier, object pattern, array pattern).
+ * @param {Object} pattern - AST node (Identifier, ObjectPattern, ArrayPattern)
+ * @param {Set<string>} bindings - Set to add names to
+ * @param {Object} t - Babel types
+ */
+function collectBindingNames(pattern, bindings, t) {
+  if (t.isIdentifier(pattern)) {
+    bindings.add(pattern.name);
+  } else if (t.isObjectPattern(pattern)) {
+    for (const prop of pattern.properties) {
+      if (t.isRestElement(prop)) {
+        collectBindingNames(prop.argument, bindings, t);
+      } else {
+        // ObjectProperty: value is the binding pattern
+        collectBindingNames(prop.value, bindings, t);
+      }
+    }
+  } else if (t.isArrayPattern(pattern)) {
+    for (const elem of pattern.elements) {
+      if (elem) {
+        if (t.isRestElement(elem)) {
+          collectBindingNames(elem.argument, bindings, t);
+        } else {
+          collectBindingNames(elem, bindings, t);
+        }
+      }
+    }
+  } else if (t.isAssignmentPattern(pattern)) {
+    // let { x = defaultValue } = ... → x is bound
+    collectBindingNames(pattern.left, bindings, t);
   }
 }
 

@@ -13,17 +13,104 @@ const {
 } = require("./rsxRuntime.cjs");
 
 /**
+ * Recursively collects all identifiers that are actual variable references in an AST node.
+ * Skips property names in non-computed member expressions (e.g., in console.log, only 'console' is collected).
+ * @param {Object} node - AST node to traverse
+ * @param {Object} t - Babel types
+ * @returns {Set<string>} Set of identifier names that are actual references
+ */
+function collectReferencedIdentifiers(node, t) {
+  const refs = new Set();
+  
+  function walk(n, skipIdentifier = false) {
+    if (!n || typeof n !== "object") return;
+    
+    // Handle MemberExpression specially: the property is not a reference (unless computed)
+    if (t.isMemberExpression(n)) {
+      // Always walk the object (it's a reference)
+      walk(n.object, false);
+      // Only walk the property if computed (e.g., a[b] - b is a reference, but a.b - b is not)
+      if (n.computed) {
+        walk(n.property, false);
+      }
+      // Don't continue with default traversal
+      return;
+    }
+    
+    // Handle ObjectProperty specially: the key is not a reference (unless computed)
+    if (t.isObjectProperty(n)) {
+      // Only walk the key if computed
+      if (n.computed) {
+        walk(n.key, false);
+      }
+      // Always walk the value
+      walk(n.value, false);
+      return;
+    }
+    
+    if (t.isIdentifier(n) && !skipIdentifier) {
+      refs.add(n.name);
+    }
+    
+    for (const key in n) {
+      if (key === "loc" || key === "start" || key === "end" || key === "range") continue;
+      const val = n[key];
+      if (Array.isArray(val)) {
+        val.forEach(item => walk(item, false));
+      } else if (val && typeof val === "object") {
+        walk(val, false);
+      }
+    }
+  }
+  
+  walk(node, false);
+  return refs;
+}
+
+/**
+ * Checks if an initializer references any variables from a given set,
+ * OR references __instance (which means it references a rewritten instance var).
+ * @param {Object} init - AST node (initializer)
+ * @param {Set<string>} localNames - Set of locally-bound variable names
+ * @param {Object} t - Babel types
+ * @returns {boolean} true if init references any local name or __instance
+ */
+function initReferencesLocals(init, localNames, t) {
+  if (!init) return false;
+  const refs = collectReferencedIdentifiers(init, t);
+  
+  // If the initializer references __instance, it means it references a
+  // rewritten instance variable, which won't be available at init time
+  if (refs.has("__instance")) return true;
+  
+  for (const ref of refs) {
+    if (localNames.has(ref)) return true;
+  }
+  return false;
+}
+
+/**
  * Injects runtime code for a single component.
- * @param {Object} componentData - { name, path, instanceVars }
+ * @param {Object} componentData - { name, path, instanceVars, localBindings }
  * @param {Object} t - Babel types
  */
 function injectRuntimeCodeForComponent(componentData, t) {
   const vars = [...componentData.instanceVars.entries()];
+  
+  // Get the set of locally-bound names (other instance vars + component-body locals)
+  // Instance var names themselves are local (they can reference each other)
+  const localNames = new Set(componentData.localBindings || []);
+  for (const [name] of vars) {
+    localNames.add(name);
+  }
 
   // Build the per-instance storage object
-  const initProps = vars.map(([name, init]) =>
-    t.objectProperty(t.identifier(name), init || t.identifier("undefined"))
-  );
+  // If an initializer references any local name, use undefined instead
+  const initProps = vars.map(([name, init]) => {
+    const usesLocal = initReferencesLocals(init, localNames, t);
+    const safeInit = (init && !usesLocal) ? init : t.identifier("undefined");
+    return t.objectProperty(t.identifier(name), safeInit);
+  });
 
   // Add internal RSX runtime slots
   initProps.push(...buildRuntimeSlots(t));
@@ -209,14 +296,55 @@ function transformComponentFunction(path, state, t) {
 }
 
 /**
- * Removes a captured instance variable from the AST.
+ * Removes a captured instance variable declaration from the AST.
+ * If the variable has an initializer that references local variables,
+ * it converts it to an __instance assignment to preserve the initialization.
+ * 
+ * @param {Object} path - Babel path to the VariableDeclarator
+ * @param {Object} componentData - Component data containing localBindings
+ * @param {Object} t - Babel types
  */
-function removeInstanceVarDeclaration(path) {
+function removeInstanceVarDeclaration(path, componentData, t) {
+  const { id, init } = path.node;
+  const varName = id.name;
+  
+  // Get local bindings (other instance vars + component-body locals like props destructuring)
+  const localNames = new Set(componentData.localBindings || []);
+  for (const [name] of componentData.instanceVars) {
+    localNames.add(name);
+  }
+  
+  // Check if the initializer references any local variables
+  const needsDeferredInit = init && initReferencesLocals(init, localNames, t);
+  
   const decl = path.parentPath;
-  if (decl.node.declarations.length === 1) {
-    decl.remove();
+  
+  if (needsDeferredInit) {
+    // Convert to an assignment statement: __instance.x = expr;
+    // This will be placed in __userInit where local variables are available
+    const assignment = t.expressionStatement(
+      t.assignmentExpression(
+        "=",
+        t.memberExpression(t.identifier("__instance"), t.identifier(varName)),
+        init
+      )
+    );
+    
+    if (decl.node.declarations.length === 1) {
+      // Replace the entire declaration with the assignment
+      decl.replaceWith(assignment);
+    } else {
+      // Remove just this declarator and insert assignment after the declaration
+      path.remove();
+      decl.insertAfter(assignment);
+    }
   } else {
-    path.remove();
+    // No deferred init needed, just remove the declaration
+    if (decl.node.declarations.length === 1) {
+      decl.remove();
+    } else {
+      path.remove();
+    }
   }
 }
 

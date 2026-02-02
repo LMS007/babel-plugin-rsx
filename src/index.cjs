@@ -66,7 +66,8 @@ module.exports = function ({ types: t }) {
           // Check if this is an RSX component (name starts with uppercase)
           if (isRSXComponent(path, t)) {
             // Register the component early so VariableDeclarator can find it
-            registerComponent(path, state);
+            // Pass t so we can collect local bindings
+            registerComponent(path, state, t);
             
             // Legacy: also set componentPath for backward compatibility
             state.rsx.componentPath = path;
@@ -113,8 +114,8 @@ module.exports = function ({ types: t }) {
         // Legacy: also store in global instanceVars for backward compatibility
         state.rsx.instanceVars.set(captured.id.name, captured.init);
 
-        // Transform: remove the declaration
-        removeInstanceVarDeclaration(path);
+        // Transform: remove the declaration (or convert to assignment if needed)
+        removeInstanceVarDeclaration(path, captured.component, t);
       },
 
       AssignmentExpression(path, state) {
