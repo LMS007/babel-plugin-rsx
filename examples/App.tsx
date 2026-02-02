@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Routes, Route, Navigate, useMatch, Link } from "react-router-dom";
 import styles from "./App.module.css";
 import { CodeViewer } from "./components/CodeViewer";
 import { getFilename, getSourceCode } from "./utils/sourceLoader";
@@ -63,8 +64,6 @@ const EXAMPLES: Example[] = [
 type Tab = "demo" | "code";
 
 export default function App() {
-  const [activeExample, setActiveExample] = useState<string | null>(EXAMPLES[0]?.id ?? null);
-
   return (
     <div className={styles.app}>
       {/* Sidebar / Index */}
@@ -72,25 +71,43 @@ export default function App() {
         <h2>RSX vs TSX</h2>
         <ul className={styles.exampleList}>
           {EXAMPLES.map((ex) => (
-            <li
-              key={ex.id}
-              className={ex.id === activeExample ? styles.activeItem : undefined}
-              onClick={() => setActiveExample(ex.id)}
-            >
-              <strong>{ex.name}</strong>
-              <p>{ex.description}</p>
-            </li>
+            <SidebarItem key={ex.id} example={ex} />
           ))}
         </ul>
       </aside>
 
       {/* Main Content */}
       <main className={styles.main}>
-        {EXAMPLES.map((ex) =>
-          ex.id === activeExample ? <ExampleView key={ex.id} example={ex} /> : null
-        )}
+        <Routes>
+          <Route path="/" element={<Navigate to={`/${EXAMPLES[0]?.id}`} replace />} />
+          {EXAMPLES.map((ex) => (
+            <Route
+              key={ex.id}
+              path={`/${ex.id}`}
+              element={<ExampleView example={ex} />}
+            />
+          ))}
+        </Routes>
       </main>
     </div>
+  );
+}
+
+/* -------------------------------------------------- */
+/* Sidebar Item */
+/* -------------------------------------------------- */
+
+function SidebarItem({ example }: { example: Example }) {
+  const match = useMatch(`/${example.id}`);
+  const isActive = match !== null;
+
+  return (
+    <li className={isActive ? styles.activeItem : undefined}>
+      <Link to={`/${example.id}`}>
+        <strong>{example.name}</strong>
+        <p>{example.description}</p>
+      </Link>
+    </li>
   );
 }
 

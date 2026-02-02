@@ -59,6 +59,7 @@
     "prettier": "^3.8.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
+    "react-router-dom": "^7.13.0",
     "shiki": "^1.29.2",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.53.1",
@@ -72,5 +73,6 @@
     "hooks",
     "performance"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {}
 }

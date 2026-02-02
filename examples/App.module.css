@@ -33,6 +33,12 @@
   border-left: 3px solid transparent;
 }
 
+.exampleList li a {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
 .exampleList li strong {
   display: block;
   margin-bottom: 4px;
