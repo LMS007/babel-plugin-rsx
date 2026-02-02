@@ -1,6 +1,6 @@
 {
   "name": "@lms5400/babel-plugin-rsx",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "private": false,
   "description": "Babel plugin for RSX Components",
   "type": "module",

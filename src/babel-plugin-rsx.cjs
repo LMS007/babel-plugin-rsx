@@ -120,8 +120,10 @@ module.exports = function ({ types: t }) {
             t.objectProperty(t.identifier("__rsx_updateCb"), t.nullLiteral()),
             t.objectProperty(t.identifier("__rsx_viewCb"), t.nullLiteral()),
             t.objectProperty(t.identifier("__rsx_destroyCb"), t.nullLiteral()),
-            t.objectProperty(t.identifier("__rsx_viewResult"), t.nullLiteral())
-            //t.objectProperty(t.identifier("__rsx_triggerRender"),t.nullLiteral())
+            t.objectProperty(t.identifier("__rsx_viewResult"), t.nullLiteral()),
+
+            // render batching flag
+            t.objectProperty(t.identifier("__rsx_renderPending"), t.booleanLiteral(false))
           );
 
           const initObject = t.objectExpression(initProps);
@@ -182,15 +184,64 @@ module.exports = function ({ types: t }) {
               ),
             ]),
 
+            // __rsx_triggerRender batches multiple render() calls into one update
+            // Generated code:
+            //   const __rsx_triggerRender = () => {
+            //     if (__instance.__rsx_renderPending) return;
+            //     __instance.__rsx_renderPending = true;
+            //     queueMicrotask(() => {
+            //       __instance.__rsx_renderPending = false;
+            //       __rsx_render();
+            //       __rsxForceUpdate(x => x + 1);
+            //     });
+            //   };
             t.variableDeclaration("const", [
               t.variableDeclarator(
                 t.identifier("__rsx_triggerRender"),
                 t.arrowFunctionExpression(
                   [],
-                  t.callExpression(t.identifier("__rsxForceUpdate"), [
-                    t.arrowFunctionExpression(
-                      [t.identifier("x")],
-                      t.binaryExpression("+", t.identifier("x"), t.numericLiteral(1))
+                  t.blockStatement([
+                    // if (__instance.__rsx_renderPending) return;
+                    t.ifStatement(
+                      t.memberExpression(t.identifier("__instance"), t.identifier("__rsx_renderPending")),
+                      t.returnStatement()
+                    ),
+                    // __instance.__rsx_renderPending = true;
+                    t.expressionStatement(
+                      t.assignmentExpression(
+                        "=",
+                        t.memberExpression(t.identifier("__instance"), t.identifier("__rsx_renderPending")),
+                        t.booleanLiteral(true)
+                      )
+                    ),
+                    // queueMicrotask(() => { __instance.__rsx_renderPending = false; __rsx_render(); __rsxForceUpdate(x => x + 1); });
+                    t.expressionStatement(
+                      t.callExpression(t.identifier("queueMicrotask"), [
+                        t.arrowFunctionExpression(
+                          [],
+                          t.blockStatement([
+                            t.expressionStatement(
+                              t.assignmentExpression(
+                                "=",
+                                t.memberExpression(t.identifier("__instance"), t.identifier("__rsx_renderPending")),
+                                t.booleanLiteral(false)
+                              )
+                            ),
+                            // __rsx_render() - execute view callback once
+                            t.expressionStatement(
+                              t.callExpression(t.identifier("__rsx_render"), [])
+                            ),
+                            t.expressionStatement(
+                              t.callExpression(t.identifier("__rsxForceUpdate"), [
+                                t.arrowFunctionExpression(
+                                  [t.identifier("x")],
+                                  t.binaryExpression("+", t.identifier("x"), t.numericLiteral(1))
+                                ),
+                              ])
+                            ),
+                          ])
+                        ),
+                      ])
                     ),
                   ])
                 )
@@ -357,13 +408,13 @@ module.exports = function ({ types: t }) {
                   ),
                 ])
               ),
-              // render() {  __rsx_render(); __rsx_triggerRender(); }
+              // render() { __rsx_triggerRender(); }
+              // Note: __rsx_render() is called inside the batched microtask, not here
               t.objectMethod(
                 "method",
                 t.identifier("render"),
                 [],
                 t.blockStatement([
-                  t.expressionStatement(t.callExpression(t.identifier("__rsx_render"), [])),
                   t.expressionStatement(t.callExpression(t.identifier("__rsx_triggerRender"), [])),
                 ])
               ),

@@ -80,7 +80,7 @@ function buildLifecycleContext(t) {
             ),
           ])
         ),
-        // render() {  __rsx_render(); __rsx_triggerRender(); }
+        // render() { __rsx_render(); __rsx_triggerRender(); }
         t.objectMethod(
           "method",
           t.identifier("render"),
