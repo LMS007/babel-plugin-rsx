@@ -343,6 +343,47 @@ describe("babel-plugin-rsx", () => {
       expect(output).toContain("selected: undefined");
       expect(output).toContain("__instance.selected = first");
     });
+
+    it("defers initialization when instance var references a function declaration", () => {
+      const input = `export default function App({ view, render, destroy }) {
+        let count = 0;
+        function increment() {
+          count++;
+          render();
+        }
+        let interval = setInterval(() => {
+          increment();
+        }, 1000);
+        destroy(() => clearInterval(interval));
+        view(() => <div>{count}</div>);
+      }`;
+      const output = transform(input);
+      // interval should be deferred because the callback references increment,
+      // which is a function declaration (local binding)
+      expect(output).toContain("interval: undefined");
+      // The deferred assignment should be in __userInit
+      expect(output).toContain("__instance.interval = setInterval");
+    });
+
+    it("defers initialization when instance var references arrow function variable", () => {
+      const input = `export default function App({ view, render, destroy }) {
+        let count = 0;
+        let increment = () => {
+          count++;
+          render();
+        };
+        let interval = setInterval(() => {
+          increment();
+        }, 1000);
+        destroy(() => clearInterval(interval));
+        view(() => <div>{count}</div>);
+      }`;
+      const output = transform(input);
+      // interval should be deferred because the callback references increment,
+      // which is an instance variable
+      expect(output).toContain("interval: undefined");
+      expect(output).toContain("__instance.interval = setInterval");
+    });
   });
 
   describe("lifecycle methods", () => {

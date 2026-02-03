@@ -95,7 +95,8 @@ function registerComponent(path, state, t) {
 
 /**
  * Collects all variable names that are bound in the component body.
- * This includes variable declarations (let, const, var) and their destructured names.
+ * This includes variable declarations (let, const, var), their destructured names,
+ * and function declarations.
  * Only collects top-level bindings in the function body, not nested scopes.
  * @param {Object} path - Babel path to the FunctionDeclaration
  * @param {Object} t - Babel types
@@ -111,6 +112,11 @@ function collectLocalBindings(path, t) {
       for (const decl of stmt.declarations) {
         collectBindingNames(decl.id, bindings, t);
       }
+    }
+    // Also collect function declarations - these are local bindings too
+    // e.g., function run() { ... } binds 'run' in the component scope
+    if (t.isFunctionDeclaration(stmt) && stmt.id && t.isIdentifier(stmt.id)) {
+      bindings.add(stmt.id.name);
     }
   }
   

@@ -20,6 +20,9 @@ import RsxDataTable from "./data-table/RsxExample.rsx";
 import ReactMultiComponent from "./multi-component/ReactExample.tsx";
 import RsxMultiComponent from "./multi-component/RsxExample.rsx";
 
+import ReactIntervalCounter from "./interval-counter/ReactExample.tsx";
+import RsxIntervalCounter from "./interval-counter/RsxExample.rsx";
+
 type Example = {
   id: string;
   name: string;
@@ -58,6 +61,13 @@ const EXAMPLES: Example[] = [
     description: "Multiple RSX components in a single file.",
     Rsx: RsxMultiComponent,
     React: ReactMultiComponent,
+  },
+  {
+    id: "interval-counter",
+    name: "Interval Counter",
+    description: "Minimal interval example to debug setInterval + render.",
+    Rsx: RsxIntervalCounter,
+    React: ReactIntervalCounter,
   },
 ];
 
