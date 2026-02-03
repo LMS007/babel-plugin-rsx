@@ -100,30 +100,23 @@ export default defineConfig({
   plugins: [
     rsxVitePlugin(),
     react({
-      include: /\.(jsx|tsx|rsx)$/
+      include: /\.(jsx|tsx)$/
     }),
   ],
 });
 ```
 
-#### Option C: Babel Config (works with any bundler)
+#### Option B: Babel Config (works with any bundler)
 
 Create or update your `babel.config.js`:
 
 ```javascript
 module.exports = {
   presets: [
-    "@babel/preset-react",
-    "@babel/preset-typescript", // if using TypeScript
+    ["@babel/preset-react", { runtime: "automatic" }],
+    "@babel/preset-typescript", // if using TypeScript 
   ],
   plugins: ["@lms5400/babel-plugin-rsx"],
-  // Ensure .rsx files are processed
-  overrides: [
-    {
-      test: /\.rsx$/,
-      presets: [["@babel/preset-react", { runtime: "automatic" }]],
-    },
-  ],
 };
 ```
 
