@@ -238,13 +238,64 @@ function injectRuntimeCodeForComponent(componentData, t) {
     ]),
   ]);
 
-  // Add useEffect for cleanup/destroy callback
+  // Add useEffect for mount/cleanup lifecycle
+  // This runs __userInit on mount and cleanup on unmount
+  // Handles StrictMode correctly by re-running init on remount
   body.unshiftContainer("body", [
     t.expressionStatement(
       t.callExpression(t.identifier("useEffect"), [
         t.arrowFunctionExpression(
           [],
           t.blockStatement([
+            // On mount: run __userInit if not already initialized during this effect cycle
+            t.ifStatement(
+              t.unaryExpression(
+                "!",
+                t.memberExpression(t.identifier("__instance"), t.identifier("__rsx_effectMounted"))
+              ),
+              t.blockStatement([
+                t.expressionStatement(
+                  t.assignmentExpression(
+                    "=",
+                    t.memberExpression(t.identifier("__instance"), t.identifier("__rsx_effectMounted")),
+                    t.booleanLiteral(true)
+                  )
+                ),
+                // Re-run init if it was cleaned up (StrictMode remount)
+                t.ifStatement(
+                  t.unaryExpression(
+                    "!",
+                    t.memberExpression(t.identifier("__instance"), t.identifier("__rsx_initialized"))
+                  ),
+                  t.blockStatement([
+                    t.expressionStatement(
+                      t.assignmentExpression(
+                        "=",
+                        t.memberExpression(t.identifier("__instance"), t.identifier("__rsx_initialized")),
+                        t.booleanLiteral(true)
+                      )
+                    ),
+                    t.expressionStatement(
+                      t.callExpression(
+                        t.memberExpression(t.identifier("__userInit"), t.identifier("call")),
+                        [t.thisExpression(), t.identifier("__rsx_ctx")]
+                      )
+                    ),
+                    t.expressionStatement(t.callExpression(t.identifier("__rsx_render"), [])),
+                    // Force a re-render to show the new view result
+                    t.expressionStatement(
+                      t.callExpression(t.identifier("__rsxForceUpdate"), [
+                        t.arrowFunctionExpression(
+                          [t.identifier("x")],
+                          t.binaryExpression("+", t.identifier("x"), t.numericLiteral(1))
+                        ),
+                      ])
+                    ),
+                  ])
+                ),
+              ])
+            ),
+            // Cleanup function
             t.returnStatement(
               t.arrowFunctionExpression(
                 [],
@@ -265,6 +316,27 @@ function injectRuntimeCodeForComponent(componentData, t) {
                         )
                       ),
                     ])
+                  ),
+                  // Reset flags so __userInit runs again on remount (StrictMode)
+                  t.expressionStatement(
+                    t.assignmentExpression(
+                      "=",
+                      t.memberExpression(
+                        t.identifier("__instance"),
+                        t.identifier("__rsx_initialized")
+                      ),
+                      t.booleanLiteral(false)
+                    )
+                  ),
+                  t.expressionStatement(
+                    t.assignmentExpression(
+                      "=",
+                      t.memberExpression(
+                        t.identifier("__instance"),
+                        t.identifier("__rsx_effectMounted")
+                      ),
+                      t.booleanLiteral(false)
+                    )
                   ),
                 ])
               )

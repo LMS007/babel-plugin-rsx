@@ -9,6 +9,9 @@ function buildRuntimeSlots(t) {
     // init flag to ensure root runs only once per instance
     t.objectProperty(t.identifier("__rsx_initialized"), t.booleanLiteral(false)),
 
+    // effect mount flag for StrictMode compatibility
+    t.objectProperty(t.identifier("__rsx_effectMounted"), t.booleanLiteral(false)),
+
     // props tracking (used later for update(prev, next))
     t.objectProperty(t.identifier("__rsx_prevProps"), t.identifier("undefined")),
     t.objectProperty(t.identifier("__rsx_currentProps"), t.identifier("undefined")),

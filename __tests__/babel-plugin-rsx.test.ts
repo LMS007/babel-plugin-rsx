@@ -592,4 +592,44 @@ describe("babel-plugin-rsx", () => {
       expect(instanceRefMatches?.length).toBeGreaterThanOrEqual(2);
     });
   });
+
+  describe("StrictMode compatibility", () => {
+    it("includes __rsx_effectMounted flag in instance object", () => {
+      const input = `export default function Counter({ view }) {
+        let count = 0;
+        view(() => <div>{count}</div>);
+      }`;
+      const output = transform(input);
+      
+      // Instance should have the effectMounted flag for StrictMode tracking
+      expect(output).toContain("__rsx_effectMounted");
+    });
+
+    it("resets flags in useEffect cleanup for proper remount", () => {
+      const input = `export default function Counter({ view, destroy }) {
+        let count = 0;
+        view(() => <div>{count}</div>);
+        destroy(() => {});
+      }`;
+      const output = transform(input);
+      
+      // The useEffect cleanup should reset both flags
+      expect(output).toContain("__instance.__rsx_initialized = false");
+      expect(output).toContain("__instance.__rsx_effectMounted = false");
+    });
+
+    it("re-runs __userInit in useEffect mount phase for StrictMode remount", () => {
+      const input = `export default function App({ view, destroy }) {
+        let cleanup = null;
+        view(() => <div />);
+        destroy(() => { cleanup(); });
+      }`;
+      const output = transform(input);
+      
+      // The useEffect should call __userInit on mount when not initialized
+      expect(output).toContain("__userInit.call");
+      // Should also trigger a force update after init in effect
+      expect(output).toContain("__rsxForceUpdate");
+    });
+  });
 });
