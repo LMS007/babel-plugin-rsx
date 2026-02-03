@@ -383,25 +383,6 @@ describe("babel-plugin-rsx", () => {
       const output = transform(input);
       expect(output).toContain("__rsxForceUpdate");
     });
-
-    it("batches multiple render calls into one update via queueMicrotask", () => {
-      const input = `export default function App({ view, render }) {
-        let a = 0;
-        let b = 0;
-        function update() {
-          a++;
-          render();
-          b++;
-          render();
-        }
-        view(() => <div>{a} {b}</div>);
-      }`;
-      const output = transform(input);
-      // Should have render batching with pending flag check
-      expect(output).toContain("__rsx_renderPending");
-      // Should use queueMicrotask for batching
-      expect(output).toContain("queueMicrotask");
-    });
   });
 
   describe("edge cases", () => {

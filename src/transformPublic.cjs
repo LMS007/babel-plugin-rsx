@@ -173,64 +173,15 @@ function injectRuntimeCodeForComponent(componentData, t) {
       ),
     ]),
 
-    // __rsx_triggerRender batches multiple render() calls into one update
-    // Generated code:
-    //   const __rsx_triggerRender = () => {
-    //     if (__instance.__rsx_renderPending) return;
-    //     __instance.__rsx_renderPending = true;
-    //     queueMicrotask(() => {
-    //       __instance.__rsx_renderPending = false;
-    //       __rsx_render();
-    //       __rsxForceUpdate(x => x + 1);
-    //     });
-    //   };
     t.variableDeclaration("const", [
       t.variableDeclarator(
         t.identifier("__rsx_triggerRender"),
         t.arrowFunctionExpression(
           [],
-          t.blockStatement([
-            // if (__instance.__rsx_renderPending) return;
-            t.ifStatement(
-              t.memberExpression(t.identifier("__instance"), t.identifier("__rsx_renderPending")),
-              t.returnStatement()
-            ),
-            // __instance.__rsx_renderPending = true;
-            t.expressionStatement(
-              t.assignmentExpression(
-                "=",
-                t.memberExpression(t.identifier("__instance"), t.identifier("__rsx_renderPending")),
-                t.booleanLiteral(true)
-              )
-            ),
-            // queueMicrotask(() => { __instance.__rsx_renderPending = false; __rsx_render(); __rsxForceUpdate(x => x + 1); });
-            t.expressionStatement(
-              t.callExpression(t.identifier("queueMicrotask"), [
-                t.arrowFunctionExpression(
-                  [],
-                  t.blockStatement([
-                    t.expressionStatement(
-                      t.assignmentExpression(
-                        "=",
-                        t.memberExpression(t.identifier("__instance"), t.identifier("__rsx_renderPending")),
-                        t.booleanLiteral(false)
-                      )
-                    ),
-                    // __rsx_render() - execute view callback once
-                    t.expressionStatement(
-                      t.callExpression(t.identifier("__rsx_render"), [])
-                    ),
-                    t.expressionStatement(
-                      t.callExpression(t.identifier("__rsxForceUpdate"), [
-                        t.arrowFunctionExpression(
-                          [t.identifier("x")],
-                          t.binaryExpression("+", t.identifier("x"), t.numericLiteral(1))
-                        ),
-                      ])
-                    ),
-                  ])
-                ),
-              ])
+          t.callExpression(t.identifier("__rsxForceUpdate"), [
+            t.arrowFunctionExpression(
+              [t.identifier("x")],
+              t.binaryExpression("+", t.identifier("x"), t.numericLiteral(1))
             ),
           ])
         )
