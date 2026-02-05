@@ -40,16 +40,18 @@ export default [
     },
   },
   // ----------------------------------------
-  // RSX files
+  // RSX files (TypeScript + JSX)
   // ----------------------------------------
   {
     files: ["**/*.rsx"],
     plugins: {
+      "@typescript-eslint": tseslint.plugin,
       rsx,
     },
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
+      parser: tseslint.parser,
       globals: {
         ...globals.browser,
         ...globals.node,
@@ -60,7 +62,15 @@ export default [
     },
     rules: {
       ...js.configs.recommended.rules,
+      ...tseslint.configs.recommended[0]?.rules,
       ...rsx.configs.recommended.rules,
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+        },
+      ],
     },
   },
   eslintConfigPrettier,

@@ -418,7 +418,95 @@ This pattern is valid but less autonomous than an upstream store.
 
 ---
 
-## 11. Mental Model Summary (For AI Systems)
+## 11. Compilation Pipeline
+
+RSX files are processed through a multi-stage compilation pipeline. Understanding this pipeline is important for tooling authors and advanced users.
+
+### 11.1 Pipeline Overview
+
+RSX supports both plain JavaScript and TypeScript syntax. TypeScript is **optional**—if your `.rsx` files contain only JavaScript + JSX, the type-strip stage is a no-op.
+
+**With TypeScript (optional):**
+```
+.rsx source (TypeScript + JSX)
+        │
+        ▼
+┌───────────────────────────────┐
+│  1. TypeScript Strip (esbuild)│  ← Erases TS syntax, preserves JSX
+│     loader: "tsx"             │     (no-op if no TS syntax present)
+│     jsx: "preserve"           │
+└───────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────┐
+│  2. RSX Transform (Babel)     │  ← Converts RSX → React components
+│     Parser: JS + JSX only     │
+└───────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────┐
+│  3. React Plugin              │  ← Converts JSX → JS
+│     @vitejs/plugin-react      │
+└───────────────────────────────┘
+        │
+        ▼
+    JavaScript output
+```
+
+**Plain JavaScript (no TypeScript):**
+```
+.rsx source (JavaScript + JSX)
+        │
+        ▼
+┌───────────────────────────────┐
+│  1. RSX Transform (Babel)     │  ← Converts RSX → React components
+└───────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────┐
+│  2. React Plugin              │  ← Converts JSX → JS
+└───────────────────────────────┘
+        │
+        ▼
+    JavaScript output
+```
+
+### 11.2 Key Invariant
+
+**The RSX Babel transform only ever sees plain JavaScript + JSX.**
+
+TypeScript is an authoring-time concern and is completely erased before RSX compilation begins. This keeps the RSX compiler simple and focused on its core responsibility: transforming the RSX component model into React-compatible code.
+
+### 11.3 Vite Plugin Configuration
+
+When using TypeScript in `.rsx` files, configure plugins in this order:
+
+```ts
+// vite.config.ts
+import { rsxTypeStripPlugin, rsxVitePlugin } from "@lms5400/babel-plugin-rsx/vite";
+import react from "@vitejs/plugin-react";
+
+export default defineConfig({
+  plugins: [
+    rsxTypeStripPlugin(),  // 1. Strip TypeScript (enforce: "pre")
+    rsxVitePlugin(),       // 2. RSX → React transformation
+    react(),               // 3. JSX → JS (React plugin)
+  ],
+});
+```
+
+If your `.rsx` files contain only JavaScript (no TypeScript), the `rsxTypeStripPlugin` can be omitted.
+
+### 11.4 Sourcemaps
+
+Each stage preserves sourcemaps, ensuring that:
+- Error messages point to original `.rsx` source locations
+- Stack traces map correctly during debugging
+- Browser devtools show the original TypeScript/JSX code
+
+---
+
+## 12. Mental Model Summary (For AI Systems)
 
 
 - RSX components are **stateful instances**, not render functions

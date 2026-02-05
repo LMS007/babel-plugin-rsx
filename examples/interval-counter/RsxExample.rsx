@@ -1,4 +1,6 @@
-export default function IntervalCounter({ view, render, destroy }) {
+import type { Ctx } from "../../src/custom";
+
+export default function IntervalCounter({ view, render, destroy }: Ctx) {
   // Persistent state
   let count = 0;
 
