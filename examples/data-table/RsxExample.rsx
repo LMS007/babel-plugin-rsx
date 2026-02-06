@@ -1,6 +1,15 @@
 // DataTable.rsx
+import type { Ctx } from "../../src/types";
 
-function generateData(count = 10_000) {
+type Row = {
+  id: number;
+  name: string;
+  email: string;
+  age: number;
+  score: number;
+};
+
+function generateData(count = 10_000): Row[] {
   const rows = [];
   for (let i = 0; i < count; i++) {
     rows.push({
@@ -16,12 +25,12 @@ function generateData(count = 10_000) {
 
 const DATA = generateData();
 
-export default function DataTableRSX({ view, render }) {
+export default function DataTableRSX({ view, render }: Ctx) {
   // -----------------------------
   // state
   // -----------------------------
   let filter = "";
-  let sortKey = "id";
+  let sortKey: keyof Row = "id";
   let sortDir = "asc";
   let page = 0;
   const pageSize = 100;
@@ -32,7 +41,7 @@ export default function DataTableRSX({ view, render }) {
   // -----------------------------
   let filtered = DATA;
   let sorted = DATA;
-  let paged = [];
+  let paged: Row[] = [];
 
   function recompute() {
     if (filter) {
@@ -62,7 +71,7 @@ export default function DataTableRSX({ view, render }) {
   // -----------------------------
   // handlers
   // -----------------------------
-  function toggleSort(key) {
+  function toggleSort(key: keyof Row) {
     if (sortKey === key) {
       sortDir = sortDir === "asc" ? "desc" : "asc";
     } else {
@@ -73,13 +82,13 @@ export default function DataTableRSX({ view, render }) {
     render();
   }
 
-  function toggleRow(id) {
+  function toggleRow(id: number) {
     selectedIds = new Set(selectedIds);
     selectedIds.has(id) ? selectedIds.delete(id) : selectedIds.add(id);
     render();
   }
 
-  function setFilter(value) {
+  function setFilter(value: string) {
     filter = value;
     page = 0;
     render();
@@ -109,11 +118,11 @@ export default function DataTableRSX({ view, render }) {
         <input
           placeholder="Filter by name or email"
           value={filter}
-          onInput={e => setFilter(e.target.value)}
+          onChange={e => setFilter(e.target.value)}
           style={{ marginBottom: 10, padding: 6, width: 300 }}
         />
 
-        <table width="100%" border="1" cellPadding="6">
+        <table width="100%" border={1} cellPadding="6">
           <thead>
             <tr>
               <th />

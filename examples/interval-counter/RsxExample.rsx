@@ -1,4 +1,4 @@
-import type { Ctx } from "../../src/custom";
+import type { Ctx } from "../../src/types";
 
 export default function IntervalCounter({ view, render, destroy }: Ctx) {
   // Persistent state

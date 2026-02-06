@@ -5,7 +5,7 @@
   "description": "Babel plugin for RSX Components",
   "type": "module",
   "main": "./src/index.cjs",
-  "types": "./src/custom.d.ts",
+  "types": "./src/types.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/LMS007/babel-plugin-rsx"
@@ -13,13 +13,17 @@
   "exports": {
     ".": {
       "require": "./src/index.cjs",
-      "types": "./src/custom.d.ts"
+      "types": "./src/types.ts"
     },
     "./vite": {
       "import": "./src/vite.js",
       "types": "./src/vite.d.ts"
     },
-    "./types": "./src/custom.d.ts"
+    "./webpack-loader": {
+      "require": "./src/webpack-loader.cjs",
+      "types": "./src/webpack-loader.d.ts"
+    },
+    "./types": "./src/types.ts"
   },
   "files": [
     "src"

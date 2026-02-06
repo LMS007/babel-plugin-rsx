@@ -8,7 +8,7 @@ import rsx from "@lms5400/eslint-plugin-rsx";
 
 export default [
   {
-    ignores: ["dist/**", "node_modules/**", "**/*.cjs", "**/*.d.ts"],
+    ignores: ["dist/**", "node_modules/**", "**/*.cjs", "**/*.d.ts", "src/types.ts"],
   },
   {
     files: ["**/*.{ts,tsx}"],
