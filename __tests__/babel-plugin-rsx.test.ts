@@ -654,4 +654,105 @@ describe("babel-plugin-rsx", () => {
       expect(output).toContain("__rsxForceUpdate");
     });
   });
+
+  describe("arrow function component support", () => {
+    it("transforms uppercase arrow function components", () => {
+      const input = `const Card = ({ view }) => {
+        let count = 0;
+        view(() => <div>{count}</div>);
+      };
+      
+      export { Card };`;
+      const output = transform(input);
+      expect(output).toContain("__instance");
+      expect(output).toContain("__instanceRef");
+    });
+
+    it("transforms arrow function with expression body", () => {
+      const input = `const Badge = ({ view }) => view(() => <span>badge</span>);
+      
+      export { Badge };`;
+      const output = transform(input);
+      // Expression body should be converted to block body and transformed
+      expect(output).toContain("__instance");
+    });
+
+    it("transforms multiple arrow function components in a file", () => {
+      const input = `
+        const Badge = ({ view }) => {
+          let color = "blue";
+          view(() => <span>{color}</span>);
+        };
+
+        const Card = ({ view }) => {
+          let title = "hello";
+          view(() => <div>{title}</div>);
+        };
+
+        export { Badge, Card };
+      `;
+      const output = transform(input);
+      // Both components should be transformed
+      const instanceRefMatches = output.match(/__instanceRef/g);
+      expect(instanceRefMatches?.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("transforms mix of function declarations and arrow functions", () => {
+      const input = `
+        const Badge = ({ view }) => {
+          let text = "badge";
+          view(() => <span>{text}</span>);
+        };
+
+        function Card({ view }) {
+          let title = "card";
+          view(() => <div><Badge />{title}</div>);
+        }
+
+        export { Badge, Card };
+      `;
+      const output = transform(input);
+      // Both components should be transformed
+      const instanceRefMatches = output.match(/__instanceRef/g);
+      expect(instanceRefMatches?.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("ignores lowercase arrow functions", () => {
+      const input = `
+        const formatText = (text) => text.toUpperCase();
+
+        const Card = ({ view }) => {
+          let title = "hello";
+          view(() => <div>{formatText(title)}</div>);
+        };
+
+        export { Card };
+      `;
+      const output = transform(input);
+      // formatText should remain untouched (Babel may remove parens around single param)
+      expect(output).toContain("const formatText =");
+      expect(output).toContain("=> text.toUpperCase()");
+      // Card should be transformed
+      expect(output).toContain("__instance");
+    });
+
+    it("transforms arrow functions inside RSX() wrapper", () => {
+      const input = `
+        import { RSX } from "@lms5400/babel-plugin-rsx/types";
+        
+        const Card = RSX(({ view }) => {
+          let title = "hello";
+          view(() => <div>{title}</div>);
+        });
+
+        export { Card };
+      `;
+      const output = transform(input);
+      // RSX() is just a TypeScript type wrapper (identity function)
+      // The inner arrow function should still be transformed
+      expect(output).toContain("RSX(");
+      expect(output).toContain("__instance");
+      expect(output).toContain("__instanceRef");
+    });
+  });
 });

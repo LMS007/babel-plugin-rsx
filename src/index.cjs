@@ -8,6 +8,8 @@ const {
   collectBannedHooks,
   identifyComponent,
   isRSXComponent,
+  isRSXArrowComponent,
+  isRSXWrapperCall,
   registerComponent,
   getComponentData,
   findContainingComponent,
@@ -101,21 +103,94 @@ module.exports = function ({ types: t }) {
         }
       },
 
-      VariableDeclarator(path, state) {
-        if (!state.rsx || state.skipRSX) return;
+      // Case 1: const Card = () => {} - uppercase variable + arrow function
+      VariableDeclarator: {
+        enter(path, state) {
+          if (!state.rsx || state.skipRSX) return;
 
-        // Analysis: capture instance var (now returns component reference)
-        const captured = captureInstanceVar(path, state, t, isInternal);
-        if (!captured) return;
+          // Check if this is an RSX arrow component
+          const rsxInfo = isRSXArrowComponent(path, t);
+          if (rsxInfo.isRSX) {
+            const varName = path.node.id.name;
+            const fnNode = rsxInfo.functionNode;
+            
+            // Convert expression body to block body if needed
+            // e.g., () => <div/> becomes () => { return <div/> }
+            if (!t.isBlockStatement(fnNode.body)) {
+              fnNode.body = t.blockStatement([
+                t.returnStatement(fnNode.body)
+              ]);
+            }
+            
+            // Get the path to the function
+            const fnPath = path.get("init");
+            
+            // Register the arrow function as an RSX component
+            registerComponent(fnPath, state, t, varName);
+            
+            // Legacy: also set componentPath for backward compatibility
+            state.rsx.componentPath = fnPath;
+            
+            // Store metadata on the path for the exit handler
+            path.setData("rsxArrowComponent", true);
+            return;
+          }
 
-        // Store the captured var in the component's instanceVars
-        captured.component.instanceVars.set(captured.id.name, captured.init);
+          // Otherwise, check if this is an instance var capture
+          const captured = captureInstanceVar(path, state, t, isInternal);
+          if (!captured) return;
+
+          // Store the captured var in the component's instanceVars
+          captured.component.instanceVars.set(captured.id.name, captured.init);
+          
+          // Legacy: also store in global instanceVars for backward compatibility
+          state.rsx.instanceVars.set(captured.id.name, captured.init);
+
+          // Transform: remove the declaration (or convert to assignment if needed)
+          removeInstanceVarDeclaration(path, captured.component, t);
+        },
         
-        // Legacy: also store in global instanceVars for backward compatibility
-        state.rsx.instanceVars.set(captured.id.name, captured.init);
+        exit(path, state) {
+          if (!state.rsx || state.skipRSX) return;
+          
+          // Check if this is an RSX arrow component - transform on exit
+          if (path.getData("rsxArrowComponent")) {
+            const fnPath = path.get("init");
+            transformComponentFunction(fnPath, state, t);
+          }
+        }
+      },
 
-        // Transform: remove the declaration (or convert to assignment if needed)
-        removeInstanceVarDeclaration(path, captured.component, t);
+      // Case 2: RSX(({ view }) => {}) - magic wrapper for TypeScript
+      CallExpression(path, state) {
+        if (!state.rsx || state.skipRSX) return;
+        
+        const rsxInfo = isRSXWrapperCall(path, t);
+        if (!rsxInfo.isRSX) return;
+        
+        const fnNode = rsxInfo.functionNode;
+        
+        // Convert expression body to block body if needed
+        if (!t.isBlockStatement(fnNode.body)) {
+          fnNode.body = t.blockStatement([
+            t.returnStatement(fnNode.body)
+          ]);
+        }
+        
+        // Get path to the inner function
+        const fnPath = path.get("arguments.0");
+        
+        // Generate a name for the component (from variable if assigned, or anonymous)
+        let componentName = "RSXComponent";
+        const parent = path.parentPath;
+        if (parent.isVariableDeclarator() && t.isIdentifier(parent.node.id)) {
+          componentName = parent.node.id.name;
+        }
+        
+        // Register and transform the inner function as an RSX component
+        registerComponent(fnPath, state, t, componentName);
+        state.rsx.componentPath = fnPath;
+        transformComponentFunction(fnPath, state, t);
       },
 
       AssignmentExpression(path, state) {
@@ -194,17 +269,7 @@ module.exports = function ({ types: t }) {
         collectBannedHooks(path, state, t);
       },
 
-      CallExpression(path, state) {
-        if (!state.rsx || state.skipRSX) return;
-
-        if (path.node.__rsxInjected) return;
-
-        const callee = path.get("callee");
-        if (!callee.isIdentifier()) return;
-        if (isInternal(callee.node.name)) return;
-        // REMOVED until we can safely ignore the compiler-injected useEffect and useRef
-        // (banned hooks warning logic was commented out in original)
-      },
+      // NOTE: The Case 2 RSX() wrapper CallExpression visitor is above near VariableDeclarator
     },
   };
 };

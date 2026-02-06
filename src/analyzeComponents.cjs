@@ -70,22 +70,80 @@ function isRSXComponent(path, t) {
 }
 
 /**
+ * Checks if a VariableDeclarator assigns an arrow/function expression to an uppercase variable.
+ * Case 1: const Card = () => {} - uppercase variable name means RSX component
+ * @param {Object} path - Babel path to the VariableDeclarator
+ * @param {Object} t - Babel types
+ * @returns {{ isRSX: boolean, functionNode: Object|null }} 
+ */
+function isRSXArrowComponent(path, t) {
+  const { id, init } = path.node;
+  
+  // Must be assigned to an identifier
+  if (!t.isIdentifier(id)) return { isRSX: false, functionNode: null };
+  
+  // Variable name must start with uppercase
+  if (!isCapitalized(id.name)) return { isRSX: false, functionNode: null };
+  
+  // Must be initialized with an arrow/function expression directly
+  if (!init) return { isRSX: false, functionNode: null };
+  if (!t.isArrowFunctionExpression(init) && !t.isFunctionExpression(init)) {
+    return { isRSX: false, functionNode: null };
+  }
+  
+  return { isRSX: true, functionNode: init };
+}
+
+/**
+ * Checks if a CallExpression is an RSX() wrapper call.
+ * Case 2: RSX(({ view }) => {}) - magic wrapper for TypeScript
+ * @param {Object} path - Babel path to the CallExpression
+ * @param {Object} t - Babel types
+ * @returns {{ isRSX: boolean, functionNode: Object|null }}
+ */
+function isRSXWrapperCall(path, t) {
+  const { callee, arguments: args } = path.node;
+  
+  // Must be calling RSX (or RSX with generic: RSX<Props>)
+  if (!t.isIdentifier(callee) || callee.name !== "RSX") {
+    return { isRSX: false, functionNode: null };
+  }
+  
+  // Must have at least one argument
+  if (!args || args.length === 0) {
+    return { isRSX: false, functionNode: null };
+  }
+  
+  // First argument must be an arrow/function expression
+  const firstArg = args[0];
+  if (!t.isArrowFunctionExpression(firstArg) && !t.isFunctionExpression(firstArg)) {
+    return { isRSX: false, functionNode: null };
+  }
+  
+  return { isRSX: true, functionNode: firstArg };
+}
+
+/**
  * Registers a component in the state.rsx.components Map.
  * Each component gets its own instanceVars Map and localBindings set.
  * Also collects all local bindings (variable names) from the component body.
- * @param {Object} path - Babel path to the FunctionDeclaration
+ * @param {Object} path - Babel path to the FunctionDeclaration or ArrowFunctionExpression
  * @param {Object} state - Babel plugin state
  * @param {Object} t - Babel types
+ * @param {string} [name] - Optional name override (for arrow functions where name comes from variable)
  */
-function registerComponent(path, state, t) {
-  const name = path.node.id.name;
+function registerComponent(path, state, t, name) {
+  // For function declarations, get name from the id
+  // For arrow functions, name is passed as parameter
+  const componentName = name || (path.node.id && path.node.id.name);
+  if (!componentName) return;
   
   if (!state.rsx.components.has(path.node)) {
     // Collect all local bindings in the component body
     const localBindings = collectLocalBindings(path, t);
     
     state.rsx.components.set(path.node, {
-      name: name,
+      name: componentName,
       path: path,
       instanceVars: new Map(),
       localBindings: localBindings
@@ -216,6 +274,8 @@ module.exports = {
   collectBannedHooks,
   identifyComponent,
   isRSXComponent,
+  isRSXArrowComponent,
+  isRSXWrapperCall,
   registerComponent,
   getComponentData,
   findContainingComponent,

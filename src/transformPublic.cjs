@@ -314,7 +314,7 @@ function injectRuntimeCode(state, t) {
 }
 
 /**
- * Transforms the FunctionDeclaration for an RSX component.
+ * Transforms the FunctionDeclaration or ArrowFunctionExpression for an RSX component.
  * Now checks against all registered components, not just a single componentPath.
  */
 function transformComponentFunction(path, state, t) {
