@@ -116,7 +116,11 @@ module.exports = function ({ types: t }) {
             }
             
             // Get the path to the function
-            const fnPath = path.get("init");
+            // If React Fast Refresh wrapped it (_c = () => {}), navigate through
+            let fnPath = path.get("init");
+            if (rsxInfo.hasAssignmentWrapper) {
+              fnPath = fnPath.get("right");
+            }
             
             // Register the arrow function as an RSX component
             registerComponent(fnPath, state, t, varName);
@@ -165,7 +169,12 @@ module.exports = function ({ types: t }) {
         }
         
         // Get path to the inner function
-        const fnPath = path.get("arguments.0");
+        // Handle React Fast Refresh wrapper: RSX(_c = () => {}) 
+        // In this case, arguments.0 is AssignmentExpression, and we need arguments.0.right
+        let fnPath = path.get("arguments.0");
+        if (fnPath.isAssignmentExpression()) {
+          fnPath = fnPath.get("right");
+        }
         
         // Generate a name for the component (from variable if assigned, or anonymous)
         let componentName = "RSXComponent";

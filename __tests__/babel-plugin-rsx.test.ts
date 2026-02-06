@@ -754,5 +754,41 @@ describe("babel-plugin-rsx", () => {
       expect(output).toContain("__instance");
       expect(output).toContain("__instanceRef");
     });
+
+    it("transforms RSX() wrapper with React Fast Refresh assignment wrapper", () => {
+      // React Fast Refresh wraps components with _c = for tracking
+      // This simulates what Vite/Fast Refresh does: RSX(_c = () => {})
+      const input = `
+        import { RSX } from "@lms5400/babel-plugin-rsx/types";
+        
+        let _c;
+        const Badge = RSX(_c = ({ view }) => {
+          view(() => <span>badge</span>);
+        });
+
+        export { Badge };
+      `;
+      const output = transform(input);
+      // The inner arrow function should still be transformed despite the _c = wrapper
+      expect(output).toContain("__instance");
+      expect(output).toContain("__instanceRef");
+      expect(output).toContain("__reactProps");
+    });
+
+    it("transforms uppercase arrow component with React Fast Refresh assignment wrapper (no RSX())", () => {
+      // When NOT using RSX() wrapper, React Fast Refresh still wraps the arrow function
+      // JS users rely on uppercase naming convention: const Badge = _c = ({ view }) => {...}
+      const input = `
+        let _c;
+        const Badge = _c = ({ view }) => {
+          view(() => <span>badge</span>);
+        };
+      `;
+      const output = transform(input);
+      // The component should be detected and transformed via uppercase naming
+      expect(output).toContain("__instance");
+      expect(output).toContain("__instanceRef");
+      expect(output).toContain("__rsxForceUpdate");
+    });
   });
 });

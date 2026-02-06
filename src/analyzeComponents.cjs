@@ -52,26 +52,37 @@ function isRSXComponent(path, t) {
 /**
  * Checks if a VariableDeclarator assigns an arrow/function expression to an uppercase variable.
  * Case 1: const Card = () => {} - uppercase variable name means RSX component
+ * Also handles React Fast Refresh wrapper: const Card = _c = () => {}
  * @param {Object} path - Babel path to the VariableDeclarator
  * @param {Object} t - Babel types
- * @returns {{ isRSX: boolean, functionNode: Object|null }} 
+ * @returns {{ isRSX: boolean, functionNode: Object|null, hasAssignmentWrapper: boolean }} 
  */
 function isRSXArrowComponent(path, t) {
   const { id, init } = path.node;
   
   // Must be assigned to an identifier
-  if (!t.isIdentifier(id)) return { isRSX: false, functionNode: null };
+  if (!t.isIdentifier(id)) return { isRSX: false, functionNode: null, hasAssignmentWrapper: false };
   
   // Variable name must start with uppercase
-  if (!isCapitalized(id.name)) return { isRSX: false, functionNode: null };
+  if (!isCapitalized(id.name)) return { isRSX: false, functionNode: null, hasAssignmentWrapper: false };
   
-  // Must be initialized with an arrow/function expression directly
-  if (!init) return { isRSX: false, functionNode: null };
-  if (!t.isArrowFunctionExpression(init) && !t.isFunctionExpression(init)) {
-    return { isRSX: false, functionNode: null };
+  // Must be initialized
+  if (!init) return { isRSX: false, functionNode: null, hasAssignmentWrapper: false };
+  
+  // Check for direct arrow/function expression
+  if (t.isArrowFunctionExpression(init) || t.isFunctionExpression(init)) {
+    return { isRSX: true, functionNode: init, hasAssignmentWrapper: false };
   }
   
-  return { isRSX: true, functionNode: init };
+  // Check for React Fast Refresh wrapper: _c = () => {}
+  if (t.isAssignmentExpression(init)) {
+    const rightSide = init.right;
+    if (t.isArrowFunctionExpression(rightSide) || t.isFunctionExpression(rightSide)) {
+      return { isRSX: true, functionNode: rightSide, hasAssignmentWrapper: true };
+    }
+  }
+  
+  return { isRSX: false, functionNode: null, hasAssignmentWrapper: false };
 }
 
 /**
@@ -84,8 +95,19 @@ function isRSXArrowComponent(path, t) {
 function isRSXWrapperCall(path, t) {
   const { callee, arguments: args } = path.node;
   
-  // Must be calling RSX (or RSX with generic: RSX<Props>)
-  if (!t.isIdentifier(callee) || callee.name !== "RSX") {
+  // Must be calling RSX - either directly or with TypeScript generic: RSX<Props>(...)
+  // Direct call: callee is Identifier with name "RSX"
+  // Generic call: callee is TSInstantiationExpression with expression.name "RSX"
+  let isRSXCallee = false;
+  if (t.isIdentifier(callee) && callee.name === "RSX") {
+    isRSXCallee = true;
+  } else if (callee.type === "TSInstantiationExpression" && 
+             t.isIdentifier(callee.expression) && 
+             callee.expression.name === "RSX") {
+    isRSXCallee = true;
+  }
+  
+  if (!isRSXCallee) {
     return { isRSX: false, functionNode: null };
   }
   
@@ -95,7 +117,14 @@ function isRSXWrapperCall(path, t) {
   }
   
   // First argument must be an arrow/function expression
-  const firstArg = args[0];
+  // OR an AssignmentExpression wrapping one (React Fast Refresh adds _c = ...)
+  let firstArg = args[0];
+  
+  // Unwrap AssignmentExpression if present (React Fast Refresh wrapper)
+  if (t.isAssignmentExpression(firstArg)) {
+    firstArg = firstArg.right;
+  }
+  
   if (!t.isArrowFunctionExpression(firstArg) && !t.isFunctionExpression(firstArg)) {
     return { isRSX: false, functionNode: null };
   }
