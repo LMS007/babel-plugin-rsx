@@ -6,7 +6,6 @@ const ensureNamedImport = require("./utils/ensureNamedImport.cjs");
 
 const {
   collectBannedHooks,
-  identifyComponent,
   isRSXComponent,
   isRSXArrowComponent,
   isRSXWrapperCall,
@@ -46,12 +45,9 @@ module.exports = function ({ types: t }) {
 
           console.log("[RSX] Transforming", filename);
 
-          // Prepare storage for this file - now supports multiple components
+          // Prepare storage for this file - supports multiple components
           state.rsx = {
             components: new Map(),  // fnNode -> { name, path, instanceVars }
-            // Legacy fields for backward compatibility during transition
-            instanceVars: new Map(),
-            componentPath: null,
           };
           ensureNamedImport(path, "react", ["useRef", "useState", "useEffect"], t);
         },
@@ -70,9 +66,6 @@ module.exports = function ({ types: t }) {
             // Register the component early so VariableDeclarator can find it
             // Pass t so we can collect local bindings
             registerComponent(path, state, t);
-            
-            // Legacy: also set componentPath for backward compatibility
-            state.rsx.componentPath = path;
           }
         },
         
@@ -128,9 +121,6 @@ module.exports = function ({ types: t }) {
             // Register the arrow function as an RSX component
             registerComponent(fnPath, state, t, varName);
             
-            // Legacy: also set componentPath for backward compatibility
-            state.rsx.componentPath = fnPath;
-            
             // Store metadata on the path for the exit handler
             path.setData("rsxArrowComponent", true);
             return;
@@ -142,9 +132,6 @@ module.exports = function ({ types: t }) {
 
           // Store the captured var in the component's instanceVars
           captured.component.instanceVars.set(captured.id.name, captured.init);
-          
-          // Legacy: also store in global instanceVars for backward compatibility
-          state.rsx.instanceVars.set(captured.id.name, captured.init);
 
           // Transform: remove the declaration (or convert to assignment if needed)
           removeInstanceVarDeclaration(path, captured.component, t);
@@ -189,7 +176,6 @@ module.exports = function ({ types: t }) {
         
         // Register and transform the inner function as an RSX component
         registerComponent(fnPath, state, t, componentName);
-        state.rsx.componentPath = fnPath;
         transformComponentFunction(fnPath, state, t);
       },
 

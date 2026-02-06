@@ -30,26 +30,6 @@ function collectBannedHooks(path, state, t) {
 }
 
 /**
- * Identifies the RSX component from an ExportDefaultDeclaration.
- * Sets state.rsx.componentPath if found.
- * @deprecated Use isRSXComponent instead for multi-component support
- */
-function identifyComponent(path, state, t) {
-  const decl = path.get("declaration");
-
-  if (
-    decl.isFunctionDeclaration() ||
-    decl.isFunctionExpression() ||
-    decl.isArrowFunctionExpression()
-  ) {
-    state.rsx.componentPath = decl;
-    return decl;
-  }
-
-  return null;
-}
-
-/**
  * Checks if a FunctionDeclaration is an RSX component.
  * A function is an RSX component if its name starts with an uppercase letter.
  * @param {Object} path - Babel path to the FunctionDeclaration
@@ -272,7 +252,6 @@ function captureInstanceVar(path, state, t, isInternal) {
 
 module.exports = {
   collectBannedHooks,
-  identifyComponent,
   isRSXComponent,
   isRSXArrowComponent,
   isRSXWrapperCall,
