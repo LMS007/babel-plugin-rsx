@@ -43,7 +43,7 @@ type CardProps = {
   badge?: string;
   badgeColor?: string;
   children?: ReactNode;
-  ref?: React.Ref<HTMLDivElement>;
+  ref?: React.Ref<HTMLInputElement>;
 };
 
 // Card component that uses Badge
@@ -59,10 +59,11 @@ const Card = RSX<CardProps>( ({ view }) => {
         boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
       }}
     >
-      <div ref={props.ref} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
         <h4 style={{ margin: 0, color: "#555" }}>{formatLabel(props.title)}</h4>
         {props.badge && <Badge color={props.badgeColor}>{props.badge}</Badge>}
       </div>
+            <input {...(props.ref ? { ref: props.ref } : {})} onClick={() => {}}></input>
       <p style={{ margin: 0, color: "#666" }}>{props.children}</p>
     </div>
   ));
@@ -71,18 +72,20 @@ const Card = RSX<CardProps>( ({ view }) => {
 
 // Main component that composes Card and Badge
 export default function MultiComponentDemo({ view }: Ctx) {
-  /*let cardRef: React.Ref<HTMLDivElement> = null;
+  let cardRef: HTMLInputElement | null = null;
   setTimeout(() => {
     if (cardRef) {
-      console.log("Card ref element:", cardRef);
+      console.log("Focusing card input...");
+      cardRef.focus()
     }
-  }, 1000);*/
+  }, 1000);
 
   view(() => (
     <div style={{ fontFamily: "system-ui, sans-serif", maxWidth: 400 }}>
       <h3>Multi-Component Example</h3>
       
-      <Card title="Welcome" badge="New" badgeColor="#28a745">
+
+      <Card title="Welcome" badge="New" badgeColor="#28a745" ref={(node) => { cardRef = node; }}>
         This card uses the Badge component defined in the same file.
       </Card>
       <Card title="Features" badge="RSX" badgeColor="hsl(211, 100%, 50%)">

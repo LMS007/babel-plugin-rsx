@@ -8,7 +8,12 @@ shape is final. That is why JSX inside `.ts` / `.tsx` / `.rsx` files rejects an
 RSX component unless you “convince” the checker that the function is really a
 `React.FC`.
 
+
 ### Why the `RSX()` Wrapper Exists
+
+```ts
+import { RSX } from "@lms5400/babel-plugin-rsx/types";
+```
 
 - **Type mismatch:** JSX expects a component type assignable to
 	`(props: Props) => React.ReactNode`. RSX components take a `Ctx<Props>`

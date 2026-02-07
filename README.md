@@ -102,7 +102,7 @@ export default defineConfig({
     rsxTypeStripPlugin(),  // 1. Strip TypeScript (optional - only if using TS in .rsx)
     rsxVitePlugin(),       // 2. RSX → React transformation
     react({                // 3. JSX → JS
-      include: /\.(jsx|tsx)$/
+      include: /\.(jsx|tsx)$/  // note: no need to include rsx because rsxVitePlugin already transforms JSX in .rsx files
     }),
   ],
 });

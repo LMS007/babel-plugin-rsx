@@ -22,7 +22,7 @@ export default defineConfig({
     rsxTypeStripPlugin(),
     rsxVitePlugin(),
     react({
-      include: /\.(jsx|tsx|rsx)$/,
+      include: /\.(jsx|tsx)$/,
     }),
   ],
 });

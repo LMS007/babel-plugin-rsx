@@ -64,6 +64,7 @@ export default [
       ...js.configs.recommended.rules,
       ...tseslint.configs.recommended[0]?.rules,
       ...rsx.configs.recommended.rules,
+      "react-hooks/immutability": "off", // Only applies to RSX, not regular React
       "@typescript-eslint/no-unused-vars": [
         "error",
         {
