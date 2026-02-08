@@ -5,7 +5,6 @@ const {
   buildRuntimeSlots,
   buildLifecycleContext,
   buildRenderFunction,
-  buildInitGuard,
   buildUserInitFunction,
   buildUpdateAndRender,
   buildTrackPropsStatements,
@@ -198,7 +197,7 @@ function injectRuntimeCodeForComponent(componentData, t) {
         t.arrowFunctionExpression(
           [],
           t.blockStatement([
-            // On mount: run __userInit if not already initialized during this effect cycle
+            // On mount: run __userInit (StrictMode-safe via __rsx_effectMounted guard)
             t.ifStatement(
               t.unaryExpression(
                 "!",
@@ -212,35 +211,19 @@ function injectRuntimeCodeForComponent(componentData, t) {
                     t.booleanLiteral(true)
                   )
                 ),
-                // Re-run init if it was cleaned up (StrictMode remount)
-                t.ifStatement(
-                  t.unaryExpression(
-                    "!",
-                    t.memberExpression(t.identifier("__instance"), t.identifier("__rsx_initialized"))
-                  ),
-                  t.blockStatement([
-                    t.expressionStatement(
-                      t.assignmentExpression(
-                        "=",
-                        t.memberExpression(t.identifier("__instance"), t.identifier("__rsx_initialized")),
-                        t.booleanLiteral(true)
-                      )
-                    ),
-                    t.expressionStatement(
-                      t.callExpression(
-                        t.memberExpression(t.identifier("__userInit"), t.identifier("call")),
-                        [t.thisExpression(), t.identifier("__rsx_ctx")]
-                      )
-                    ),
-                    t.expressionStatement(t.callExpression(t.identifier("__rsx_render"), [])),
-                    // Force a re-render to show the new view result
-                    t.expressionStatement(
-                      t.callExpression(t.identifier("__rsxForceUpdate"), [
-                        t.arrowFunctionExpression(
-                          [t.identifier("x")],
-                          t.binaryExpression("+", t.identifier("x"), t.numericLiteral(1))
-                        ),
-                      ])
+                t.expressionStatement(
+                  t.callExpression(
+                    t.memberExpression(t.identifier("__userInit"), t.identifier("call")),
+                    [t.thisExpression(), t.identifier("__rsx_ctx")]
+                  )
+                ),
+                t.expressionStatement(t.callExpression(t.identifier("__rsx_render"), [])),
+                // Force a re-render to show the new view result
+                t.expressionStatement(
+                  t.callExpression(t.identifier("__rsxForceUpdate"), [
+                    t.arrowFunctionExpression(
+                      [t.identifier("x")],
+                      t.binaryExpression("+", t.identifier("x"), t.numericLiteral(1))
                     ),
                   ])
                 ),
@@ -268,17 +251,7 @@ function injectRuntimeCodeForComponent(componentData, t) {
                       ),
                     ])
                   ),
-                  // Reset flags so __userInit runs again on remount (StrictMode)
-                  t.expressionStatement(
-                    t.assignmentExpression(
-                      "=",
-                      t.memberExpression(
-                        t.identifier("__instance"),
-                        t.identifier("__rsx_initialized")
-                      ),
-                      t.booleanLiteral(false)
-                    )
-                  ),
+                  // Reset flag so __userInit runs again on remount (StrictMode/HMR)
                   t.expressionStatement(
                     t.assignmentExpression(
                       "=",
@@ -351,7 +324,6 @@ function transformComponentFunction(path, state, t) {
   const ctxObjectDecl = buildLifecycleContext(t);
   const renderFnDecl = buildRenderFunction(t);
   const userInitFn = buildUserInitFunction(nonReturnStatements, t);
-  const initGuard = buildInitGuard(t);
   const updateAndRender = buildUpdateAndRender(t);
   const finalReturn = buildFinalReturn(t);
 
@@ -361,7 +333,6 @@ function transformComponentFunction(path, state, t) {
     ctxObjectDecl,
     renderFnDecl,
     userInitFn,
-    initGuard,
     updateAndRender,
     finalReturn,
   ];

@@ -627,7 +627,7 @@ describe("babel-plugin-rsx", () => {
       expect(output).toContain("__rsx_effectMounted");
     });
 
-    it("resets flags in useEffect cleanup for proper remount", () => {
+    it("resets effectMounted flag in useEffect cleanup for proper remount", () => {
       const input = `export default function Counter({ view, destroy }) {
         let count = 0;
         view(() => <div>{count}</div>);
@@ -635,8 +635,8 @@ describe("babel-plugin-rsx", () => {
       }`;
       const output = transform(input);
       
-      // The useEffect cleanup should reset both flags
-      expect(output).toContain("__instance.__rsx_initialized = false");
+      // The useEffect cleanup should reset __rsx_effectMounted for StrictMode/HMR remount
+      // (Real unmounts destroy the ref entirely, so this reset is only for StrictMode probe)
       expect(output).toContain("__instance.__rsx_effectMounted = false");
     });
 
