@@ -423,7 +423,28 @@ This pattern is valid but less autonomous than an upstream store.
 
 RSX does not use `useRef`. Instead, refs are handled using **plain instance variables** and **callback refs**.
 
-```jsx
+
+**Parent component** - passes a callback ref via props:
+
+```ts
+export default function App({ view }: Ctx) {
+  let cardInputRef: HTMLInputElement | null = null;
+
+  // this can be any event handler after view is executed
+  setTimeout(() => {  
+    if (cardInputRef) {
+      console.log("Focusing card input...");
+      cardInputRef.focus();
+    }
+  }, 1000);
+
+  view(() => (
+    // use the callback pattern for ref assignment 
+    <Child title="Welcome" ref={(node) => { cardInputRef = node; }} />
+  ));
+}
+```
+```ts
 type ChildProps = {
   title: string;
   ref?: React.Ref<HTMLInputElement>;
@@ -437,26 +458,6 @@ const Child = RSX<ChildProps>(({ view }) => {
     </div>
   ));
 });
-```
-
-**Parent component** - passes a callback ref via props:
-
-```jsx
-export default function App({ view }: Ctx) {
-  let cardInputRef: HTMLInputElement | null = null;
-
-  // this can be any event handler after view is executed
-  setTimeout(() => {  
-    if (cardInputRef) {
-      console.log("Focusing card input...");
-      cardInputRef.focus();
-    }
-  }, 1000);
-
-  view(() => (
-    <Child title="Welcome" ref={(node) => { cardInputRef = node; }} />
-  ));
-}
 ```
 
 ### Why This Works
