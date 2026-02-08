@@ -1,11 +1,11 @@
 {
   "name": "@lms5400/babel-plugin-rsx",
-  "version": "1.1.4",
+  "version": "1.2.0",
   "private": false,
   "description": "Babel plugin for RSX Components",
   "type": "module",
   "main": "./src/index.cjs",
-  "types": "./src/custom.d.ts",
+  "types": "./src/types.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/LMS007/babel-plugin-rsx"
@@ -13,13 +13,17 @@
   "exports": {
     ".": {
       "require": "./src/index.cjs",
-      "types": "./src/custom.d.ts"
+      "types": "./src/types.ts"
     },
     "./vite": {
       "import": "./src/vite.js",
       "types": "./src/vite.d.ts"
     },
-    "./types": "./src/custom.d.ts"
+    "./webpack-loader": {
+      "require": "./src/webpack-loader.cjs",
+      "types": "./src/webpack-loader.d.ts"
+    },
+    "./types": "./src/types.ts"
   },
   "files": [
     "src"
@@ -38,6 +42,7 @@
   "peerDependencies": {
     "@babel/core": "^7.0.0",
     "@babel/preset-react": "^7.0.0",
+    "esbuild": "^0.17.0 || ^0.18.0 || ^0.19.0 || ^0.20.0 || ^0.21.0 || ^0.23.0 || ^0.24.0 || ^0.25.0 || ^0.26.0 || ^0.27.0",
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0"
   },

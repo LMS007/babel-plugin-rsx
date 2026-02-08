@@ -4,14 +4,23 @@
  * Demonstrates multiple RSX components in a single file.
  * All uppercase functions are automatically detected as RSX components.
  */
+import type  { ReactNode } from "react";
+import React from "react";
+import { Ctx, RSX } from "../../src/types";
 
 // Helper function (lowercase - not transformed)
-function formatLabel(text) {
+function formatLabel(text: string) {
   return text.toUpperCase();
 }
 
+
+type BadgeProps = {
+  color?: string;
+  children: ReactNode;
+};
+
 // Simple badge component
-function Badge({ view }) {
+const Badge = RSX<BadgeProps>(({ view }) => {
   view((props) => (
     <span
       style={{
@@ -27,10 +36,17 @@ function Badge({ view }) {
       {props.children}
     </span>
   ));
-}
+});
+
+type CardProps = {
+  title: string;
+  badge?: string;
+  badgeColor?: string;
+  children?: ReactNode;
+};
 
 // Card component that uses Badge
-function Card({ view }) {
+const Card = RSX<CardProps>( ({ view }) => {
   view((props) => (
     <div
       style={{
@@ -49,22 +65,20 @@ function Card({ view }) {
       <p style={{ margin: 0, color: "#666" }}>{props.children}</p>
     </div>
   ));
-}
+});
+
 
 // Main component that composes Card and Badge
-export default function MultiComponentDemo({ view }) {
+export default function MultiComponentDemo({ view }: Ctx) {
   view(() => (
     <div style={{ fontFamily: "system-ui, sans-serif", maxWidth: 400 }}>
       <h3>Multi-Component Example</h3>
-      
       <Card title="Welcome" badge="New" badgeColor="#28a745">
         This card uses the Badge component defined in the same file.
       </Card>
-      
-      <Card title="Features" badge="RSX" badgeColor="#007bff">
+      <Card title="Features" badge="RSX" badgeColor="hsl(211, 100%, 50%)">
         Multiple components can share helper functions like formatLabel().
       </Card>
-      
       <Card title="Simple">
         Cards without badges work too!
       </Card>

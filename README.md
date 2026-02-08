@@ -85,42 +85,32 @@ npm install @lms5400/babel-plugin-rsx
 
 Add the plugin to your Babel configuration. Choose the setup that matches your bundler:
 
-#### Option A: Vite
+#### Option A: Vite _(recommended)_
 
 ```typescript
 // vite.config.ts
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { rsxVitePlugin } from "@lms5400/babel-plugin-rsx/vite";
+import { rsxTypeStripPlugin, rsxVitePlugin } from "@lms5400/babel-plugin-rsx/vite";
 
 export default defineConfig({
   resolve: {
     extensions: [".mjs", ".js", ".ts", ".jsx", ".tsx", ".json", ".rsx"],
   },
   plugins: [
-    rsxVitePlugin(),
-    react({
-      include: /\.(jsx|tsx)$/
+    // Plugin order matters:
+    rsxTypeStripPlugin(),  // 1. Strip TypeScript (optional - only if using TS in .rsx)
+    rsxVitePlugin(),       // 2. RSX → React transformation
+    react({                // 3. JSX → JS
+      include: /\.(jsx|tsx)$/  // note: no need to include rsx because rsxVitePlugin already transforms JSX in .rsx files
     }),
   ],
 });
 ```
 
-#### Option B: Babel Config (works with any bundler)
+#### Option B: Webpack (Recommended for Webpack users)
 
-Create or update your `babel.config.js`:
-
-```javascript
-module.exports = {
-  presets: [
-    ["@babel/preset-react", { runtime: "automatic" }],
-    "@babel/preset-typescript", // if using TypeScript 
-  ],
-  plugins: ["@lms5400/babel-plugin-rsx"],
-};
-```
-
-#### Option C: Webpack
+Use the dedicated RSX loader which handles TypeScript stripping and RSX transformation:
 
 ```javascript
 // webpack.config.js
@@ -130,21 +120,38 @@ module.exports = {
   },
   module: {
     rules: [
+      // RSX files - use dedicated loader
       {
-        test: /\.(js|jsx|ts|tsx|rsx)$/,
+        test: /\.rsx$/,
         exclude: /node_modules/,
-        use: {
-          loader: "babel-loader",
-          options: {
-            presets: ["@babel/preset-react", "@babel/preset-typescript"],
-            plugins: ["@lms5400/babel-plugin-rsx"],
-          },
-        },
+        use: "@lms5400/babel-plugin-rsx/webpack-loader",
+      },
+      // Regular JS/TS files
+      {
+        test: /\.(js|jsx|ts|tsx)$/,
+        exclude: /node_modules/,
+        use: "babel-loader",
       },
     ],
   },
 };
 ```
+
+#### Option C: Babel Config (works with any bundler)
+
+Create or update your `babel.config.js`:
+
+```javascript
+module.exports = {
+  presets: [
+    ["@babel/preset-react", { runtime: "automatic" }],
+    "@babel/preset-typescript", // Required for TypeScript in .rsx files
+  ],
+  plugins: ["@lms5400/babel-plugin-rsx"],
+};
+```
+
+> **Note:** This approach requires `@babel/preset-typescript` to strip TypeScript before RSX transformation.
 
 ### 3. [Highly Recommended] – Configure ESLint for RSX Files
 
@@ -158,46 +165,77 @@ https://github.com/LMS007/eslint-plugin-rsx
 
 ### 4. [Optional] - Add TypeScript Support
 
-> ⚠️ **Note:** TypeScript support for `.rsx` files is still a work in progress. The types below are available but IDE integration may be limited.
+RSX fully supports TypeScript in `.rsx` files. Follow these steps to enable it:
 
-Add the RSX types to your `tsconfig.json`:
+#### Step 1: Add RSX types to `tsconfig.json`
 
 ```jsonc
 {
   "compilerOptions": {
     "jsx": "react-jsx",
-    "types": ["@lms5400/babel-plugin-rsx/types"],
+    "types": ["@lms5400/babel-plugin-rsx/types"]
   },
+  "include": ["src/**/*", "src/**/*.rsx"]  // Include .rsx files
 }
 ```
 
-This provides full type support for `.rsx` files, including the `Ctx` type with `view`, `update`, `render`, `destroy`, and `props`.
+This provides:
+- Type declarations for `*.rsx` imports (so TypeScript understands `import X from "./X.rsx"`)
+- The `Ctx` type for typing RSX component parameters
 
-You can also import the types directly if needed:
+#### Step 2: Configure VS Code
 
-```typescript
-import type { Ctx } from "@lms5400/babel-plugin-rsx";
+Create or update `.vscode/settings.json` to treat `.rsx` files as TypeScript React:
 
-interface MyProps {
-  name: string;
-}
-
-export default function MyComponent({ view, render, props }: Ctx<MyProps>) {
-  // ...
+```jsonc
+{
+  "files.associations": {
+    "*.rsx": "typescriptreact"
+  }
 }
 ```
 
+This enables full IDE support: syntax highlighting, IntelliSense, error checking, and go-to-definition.
 
+#### Step 3: Update ESLint for TypeScript (if using ESLint)
 
+If you followed Step 3 above to configure ESLint with `@lms5400/eslint-plugin-rsx`, update your `eslint.config.js` to use the TypeScript parser for `.rsx` files:
 
+```javascript
+import tseslint from "typescript-eslint";
+
+export default [
+  // ... other configs
+  {
+    files: ["**/*.rsx"],
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: {
+        ecmaFeatures: { jsx: true },
+      },
+    },
+    // ... rules
+  },
+];
+```
+
+---
 
 ## Create Your First RSX Component
 
 Create a file with the `.rsx` extension:
 
-```jsx
+> Note: The `RSX()` wrapper is necessary when mixing TypeScript and RSX. See [TS_Semantics.md](docs/TS_Semantics.md) for the full rationale and a nested components.
+
+```typescript
 // Counter.rsx
-export default function Counter({ view, render }) {
+import type { RSX } from "@lms5400/babel-plugin-rsx/types";
+
+interface CounterProps {
+  name: string;
+}
+
+export default function RSX<CounterProps>(Counter({ view, render }) {
   let count = 0;
 
   function increment() {
@@ -211,10 +249,17 @@ export default function Counter({ view, render }) {
       <button onClick={increment}>Count: {count}</button>
     </>
   ));
-}
+})
 ```
 
-### 7. Use It in Your React App
+The RSX parameter uses the `Ctx<P>` generic type with the following structure:
+- `props` - your component's props (type `P`)
+- `view(cb)` - register view callback, receives `(props: P) => ReactNode`
+- `update(cb)` - register update callback, receives `(prev: P, next: P) => void`
+- `render()` - trigger a re-render
+- `destroy(cb)` - register cleanup callback
+
+### Use It in Your React App
 
 ```tsx
 import Counter from "./Counter.rsx";
@@ -467,4 +512,4 @@ RSX is not a general replacement for React. Prefer JSX + hooks when:
 ## Further Reading
 
 - [RSX Component Execution & Lifecycle Specification](docs/RSX_Semantics.md)
-- [Common RSX Examples](docs/examples.md)
+- [TypeScript details](docs/TS_Semantics.md)

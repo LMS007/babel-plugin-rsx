@@ -11,7 +11,7 @@ An RSX component is authored as a single exported function in a `.rsx` file.
 
 ```ts
 // The ctx parameter must always be destructured:
-export default function Component({ view, update, destroy, render, props }, ref?) {
+export default function Component({ view, update, destroy, render, props }) {
   // root scope
 }
 ```
@@ -21,7 +21,6 @@ export default function Component({ view, update, destroy, render, props }, ref?
 | Parameter | Required | Description                                            |
 | --------- | -------- | ------------------------------------------------------ |
 | `{ view, update, destroy, render, props }` | yes | Destructured lifecycle context object injected by the RSX compiler. **Must always be destructured.** |
-| `ref`     | no       | Optional forwarded React ref; passed through unchanged |
 
 > **Note:** Always destructure the `ctx` object in the parameter list. Do **not** use `ctx` as a single object parameter.
 
@@ -82,6 +81,8 @@ export default function CardList({ view }) {
   ));
 }
 ```
+
+> Note See [TypeScript details](docs/TS_Semantics.md) if you are using Typescript with RSX components.
 
 Each uppercase function:
 - Gets its own instance variable storage
@@ -418,7 +419,153 @@ This pattern is valid but less autonomous than an upstream store.
 
 ---
 
-## 11. Mental Model Summary (For AI Systems)
+## 11. Using Refs
+
+RSX does not use `useRef`. Instead, refs are handled using **plain instance variables** and **callback refs**.
+
+
+**Parent component** - passes a callback ref via props:
+
+```ts
+export default function App({ view }: Ctx) {
+  let cardInputRef: HTMLInputElement | null = null;
+
+  // this can be any event handler after view is executed
+  setTimeout(() => {  
+    if (cardInputRef) {
+      console.log("Focusing card input...");
+      cardInputRef.focus();
+    }
+  }, 1000);
+
+  view(() => (
+    // use the callback pattern for ref assignment 
+    <Child title="Welcome" ref={(node) => { cardInputRef = node; }} />
+  ));
+}
+```
+```ts
+type ChildProps = {
+  title: string;
+  ref?: React.Ref<HTMLInputElement>;
+};
+
+const Child = RSX<ChildProps>(({ view }) => {
+  view((props) => (
+    <div>
+      <h4>{props.title}</h4>
+      <input ref={props.ref} />
+    </div>
+  ));
+});
+```
+
+### Why This Works
+
+- RSX instance variables persist for the component's lifetime (like `useRef`)
+- Callback refs are called by React when the element mounts/unmounts
+- No special forwarding mechanism needed—`ref` is just a prop
+
+### Comparison with React
+
+| React                          | RSX                                    |
+| ------------------------------ | -------------------------------------- |
+| `const ref = useRef(null)`     | `let ref = null`                       |
+| `ref.current`                  | `ref` (direct access)                  |
+| `React.forwardRef()`           | Pass `ref` as a regular prop           |
+| `useImperativeHandle()`        | Not needed—expose methods via props    |
+
+---
+
+## 12. Compilation Pipeline
+
+RSX files are processed through a multi-stage compilation pipeline. Understanding this pipeline is important for tooling authors and advanced users.
+
+### 12.1 Pipeline Overview
+
+RSX supports both plain JavaScript and TypeScript syntax. TypeScript is **optional**—if your `.rsx` files contain only JavaScript + JSX, the type-strip stage is a no-op.
+
+**With TypeScript (optional):**
+```
+.rsx source (TypeScript + JSX)
+        │
+        ▼
+┌───────────────────────────────┐
+│  1. TypeScript Strip (esbuild)│  ← Erases TS syntax, preserves JSX
+│     loader: "tsx"             │     (no-op if no TS syntax present)
+│     jsx: "preserve"           │
+└───────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────┐
+│  2. RSX Transform (Babel)     │  ← Converts RSX → React components
+│     Parser: JS + JSX only     │
+└───────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────┐
+│  3. React Plugin              │  ← Converts JSX → JS
+│     @vitejs/plugin-react      │
+└───────────────────────────────┘
+        │
+        ▼
+    JavaScript output
+```
+
+**Plain JavaScript (no TypeScript):**
+```
+.rsx source (JavaScript + JSX)
+        │
+        ▼
+┌───────────────────────────────┐
+│  1. RSX Transform (Babel)     │  ← Converts RSX → React components
+└───────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────┐
+│  2. React Plugin              │  ← Converts JSX → JS
+└───────────────────────────────┘
+        │
+        ▼
+    JavaScript output
+```
+
+### 12.2 Key Invariant
+
+**The RSX Babel transform only ever sees plain JavaScript + JSX.**
+
+TypeScript is an authoring-time concern and is completely erased before RSX compilation begins. This keeps the RSX compiler simple and focused on its core responsibility: transforming the RSX component model into React-compatible code.
+
+### 12.3 Vite Plugin Configuration
+
+When using TypeScript in `.rsx` files, configure plugins in this order:
+
+```ts
+// vite.config.ts
+import { rsxTypeStripPlugin, rsxVitePlugin } from "@lms5400/babel-plugin-rsx/vite";
+import react from "@vitejs/plugin-react";
+
+export default defineConfig({
+  plugins: [
+    rsxTypeStripPlugin(),  // 1. Strip TypeScript (enforce: "pre")
+    rsxVitePlugin(),       // 2. RSX → React transformation
+    react(),               // 3. JSX → JS (React plugin)
+  ],
+});
+```
+
+If your `.rsx` files contain only JavaScript (no TypeScript), the `rsxTypeStripPlugin` can be omitted.
+
+### 12.4 Sourcemaps
+
+Each stage preserves sourcemaps, ensuring that:
+- Error messages point to original `.rsx` source locations
+- Stack traces map correctly during debugging
+- Browser devtools show the original TypeScript/JSX code
+
+---
+
+## 13. Mental Model Summary (For AI Systems)
 
 
 - RSX components are **stateful instances**, not render functions

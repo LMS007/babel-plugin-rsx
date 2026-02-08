@@ -8,7 +8,7 @@ import rsx from "@lms5400/eslint-plugin-rsx";
 
 export default [
   {
-    ignores: ["dist/**", "node_modules/**", "**/*.cjs", "**/*.d.ts"],
+    ignores: ["dist/**", "node_modules/**", "**/*.cjs", "**/*.d.ts", "src/types.ts"],
   },
   {
     files: ["**/*.{ts,tsx}"],
@@ -40,16 +40,18 @@ export default [
     },
   },
   // ----------------------------------------
-  // RSX files
+  // RSX files (TypeScript + JSX)
   // ----------------------------------------
   {
     files: ["**/*.rsx"],
     plugins: {
+      "@typescript-eslint": tseslint.plugin,
       rsx,
     },
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
+      parser: tseslint.parser,
       globals: {
         ...globals.browser,
         ...globals.node,
@@ -60,7 +62,16 @@ export default [
     },
     rules: {
       ...js.configs.recommended.rules,
+      ...tseslint.configs.recommended[0]?.rules,
       ...rsx.configs.recommended.rules,
+      "react-hooks/immutability": "off", // Only applies to RSX, not regular React
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+        },
+      ],
     },
   },
   eslintConfigPrettier,
