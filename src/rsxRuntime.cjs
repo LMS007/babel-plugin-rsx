@@ -6,9 +6,6 @@
  */
 function buildRuntimeSlots(t) {
   return [
-    // init flag to ensure root runs only once per instance
-    t.objectProperty(t.identifier("__rsx_initialized"), t.booleanLiteral(false)),
-
     // effect mount flag for StrictMode compatibility
     t.objectProperty(t.identifier("__rsx_effectMounted"), t.booleanLiteral(false)),
 
@@ -149,39 +146,6 @@ function buildRenderFunction(t) {
 }
 
 /**
- * Builds the init-once guard if statement.
- */
-function buildInitGuard(t) {
-  return t.ifStatement(
-    t.unaryExpression(
-      "!",
-      t.memberExpression(t.identifier("__instance"), t.identifier("__rsx_initialized"))
-    ),
-    t.blockStatement([
-      // __instance.__rsx_initialized = true;
-      t.expressionStatement(
-        t.assignmentExpression(
-          "=",
-          t.memberExpression(t.identifier("__instance"), t.identifier("__rsx_initialized")),
-          t.booleanLiteral(true)
-        )
-      ),
-
-      // Call user function with context object
-      t.expressionStatement(
-        t.callExpression(
-          t.memberExpression(t.identifier("__userInit"), t.identifier("call")),
-          [t.thisExpression(), t.identifier("__rsx_ctx")]
-        )
-      ),
-
-      // render once on mount so view() output is produced immediately
-      t.expressionStatement(t.callExpression(t.identifier("__rsx_render"), [])),
-    ])
-  );
-}
-
-/**
  * Builds the user init function wrapper.
  */
 function buildUserInitFunction(nonReturnStatements, t) {
@@ -209,7 +173,7 @@ function buildUpdateAndRender(t) {
       "&&",
       t.logicalExpression(
         "&&",
-        t.memberExpression(t.identifier("__instance"), t.identifier("__rsx_initialized")),
+        t.memberExpression(t.identifier("__instance"), t.identifier("__rsx_effectMounted")),
         t.binaryExpression(
           "!==",
           t.memberExpression(t.identifier("__instance"), t.identifier("__rsx_prevProps")),
@@ -290,7 +254,6 @@ module.exports = {
   buildRuntimeSlots,
   buildLifecycleContext,
   buildRenderFunction,
-  buildInitGuard,
   buildUserInitFunction,
   buildUpdateAndRender,
   buildTrackPropsStatements,
