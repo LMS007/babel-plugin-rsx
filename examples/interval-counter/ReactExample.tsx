@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from "react";
 
 export default function IntervalCounter() {
+  // Persistent state
   const [count, setCount] = useState(0);
 
   useEffect(() => {
+    // Setup interval
     const interval = setInterval(() => {
-      console.log("React Interval tick, interval:", interval);
       setCount((c) => c + 1);
     }, 1000);
 
-    console.log("React: Created interval", interval);
-
+    // Cleanup on unmount
     return () => {
-      console.log("React: Clearing interval", interval);
       clearInterval(interval);
     };
   }, []);

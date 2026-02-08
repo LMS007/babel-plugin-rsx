@@ -1,30 +1,18 @@
 import type { Ctx } from "../../src/types";
 
 export default function IntervalCounter({ view, render, destroy }: Ctx) {
-  // Persistent state
-  let count = 0;
+  let count = 0; // Persistent state
 
-  // Setup interval
-  function run() {
-    count++;
-    console.log("Interval tick, count:", count);
-    render();
-  }
-  
-  console.log("Setting up interval...");
   const interval = setInterval(() => {
-    run();
+    count++;
+    render();
   }, 1000);
-
-  console.log("Interval id:", interval);
 
   // Cleanup on unmount
   destroy(() => {
-    console.log("Cleaning up interval:", interval);
-    clearInterval(interval);
+    clearInterval(interval); // `interval` is also persistent state
   });
 
-  // View
   view(() => {
     return (
       <div style={{ fontFamily: "monospace", padding: 20, textAlign: "center" }}>
