@@ -27,20 +27,6 @@ function validateComponentParams(params, filename, t) {
 }
 
 /**
- * Throws an error if props are being mutated directly.
- */
-function validatePropsImmutable(path, t) {
-  const { left } = path.node;
-
-  if (t.isMemberExpression(left) && t.isIdentifier(left.object, { name: "props" })) {
-    throw path.buildCodeFrameError(
-      "[RSX] Props are immutable.\n" +
-        "Do not assign to props.* — treat props as read-only inputs."
-    );
-  }
-}
-
-/**
  * Warns if assigning instance state from props in root scope.
  */
 function warnPropsInRootScope(path, state, t) {
@@ -61,6 +47,5 @@ function warnPropsInRootScope(path, state, t) {
 
 module.exports = {
   validateComponentParams,
-  validatePropsImmutable,
   warnPropsInRootScope
 };

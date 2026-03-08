@@ -185,14 +185,6 @@ describe("babel-plugin-rsx", () => {
   });*/
 
   describe("props handling", () => {
-    it("throws error when mutating props", () => {
-      const input = `export default function App({ view, props }) {
-        props.value = 123;
-        view(() => <div />);
-      }`;
-      expect(() => transform(input)).toThrow(/Props are immutable/);
-    });
-
     it("allows reading props", () => {
       const input = `export default function App({ view, props }) {
         let initial = props.value;

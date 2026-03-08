@@ -17,7 +17,6 @@ const {
 
 const {
   validateComponentParams,
-  validatePropsImmutable,
   warnPropsInRootScope
 } = require("./validateComponents.cjs");
 
@@ -192,9 +191,6 @@ module.exports = function ({ types: t }) {
         if (!state.rsx || state.skipRSX) return;
 
         const { left, right } = path.node;
-
-        // Validation: error on props mutation
-        validatePropsImmutable(path, t);
 
         // From this point on, we only care about assignments to
         // RSX instance variables (persistent component state).
