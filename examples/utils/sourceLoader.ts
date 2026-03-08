@@ -6,6 +6,8 @@ import rsxDataTableSource from "../data-table/RsxExample.rsx?raw";
 import reactDataTableSource from "../data-table/ReactExample.tsx?raw";
 import rsxMultiComponentSource from "../multi-component/RsxExample.rsx?raw";
 import reactMultiComponentSource from "../multi-component/ReactExample.tsx?raw";
+import rsxIntervalCounterSource from "../interval-counter/RsxExample.rsx?raw";
+import reactIntervalCounterSource from "../interval-counter/ReactExample.tsx?raw";
 
 export const SOURCE_CODE: Record<string, { rsx: string; react: string }> = {
   "stop-watch": {
@@ -19,6 +21,10 @@ export const SOURCE_CODE: Record<string, { rsx: string; react: string }> = {
   "multi-component": {
     rsx: rsxMultiComponentSource,
     react: reactMultiComponentSource,
+  },
+  "interval-counter": {
+    rsx: rsxIntervalCounterSource,
+    react: reactIntervalCounterSource,
   },
 };
 
