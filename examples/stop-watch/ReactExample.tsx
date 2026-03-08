@@ -138,16 +138,9 @@ export default function ReactTimer({
         {elapsedMs.toFixed(1)}
       </div>
 
-      <div
-        style={{
-          textAlign: "center",
-          marginBottom: 8,
-          fontSize: 12,
-          color: "#888",
-        }}
-      >
-        Frames: {frameCount}
-      </div>
+       <div style={{ textAlign: "center", marginBottom: 8, fontSize: 12, color: "#888" }}>
+          Frames: {frameCount}
+        </div>
 
       <div style={{ textAlign: "center", marginBottom: 12 }}>
         Frame time: {frameMs.toFixed(2)} ms
