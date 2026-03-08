@@ -48,7 +48,7 @@
 .contentWrapper {
   display: flex;
   flex: 1;
-  overflow: none;
+  overflow: auto;
   min-height: 0;
 }
 
@@ -75,7 +75,6 @@
 .content {
   padding: 16px;
   padding-left: 12px;
-  overflow: auto;
   flex: 1;
 }
 
